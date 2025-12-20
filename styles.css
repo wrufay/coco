@@ -46,9 +46,9 @@ html {
 }
 
 /* animations */
-* {
+/* * {
   transition: 0.3s ease;
-}
+} */
 
 .typing-animation {
   display: inline-block;
@@ -112,22 +112,16 @@ html {
 .fade-in-bounce-delayed {
   opacity: 0;
   animation: fadeInBounce 0.4s ease-out 0.1s forwards;
+  will-change: opacity, transform;
 }
 
 @keyframes fadeInBounce {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.95);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(-3px) scale(1.02);
-  }
-  80% {
-    transform: translateY(1px) scale(0.99);
+    transform: translateY(5px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }

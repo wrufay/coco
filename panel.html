@@ -14,7 +14,7 @@
     <nav class="fixed top-10 left-0 right-0 flex justify-center">
       <button id="reset" class="hover:cursor-pointer text-xl">↻</button>
     </nav> -->
-    <section class="flex flex-col items-center min-h-screen mt-20">
+    <section class="flex flex-col items-center min-h-screen mt-16">
       <!-- 1. intro stuff -->
       <div id="intro" class="max-w-sm text-center mb-0">
         <img
@@ -51,7 +51,7 @@
       <!-- 2. add jobs form -->
       <div id="add" class="fade-in-bounce-delayed mt-4">
         <form id="add-job" class="flex flex-col gap-3 max-w-3xs mx-auto">
-          <!-- 1. company and role (required) -->
+          <!-- company and role (required) -->
           <label
             class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
             for="company-role-input"
@@ -64,7 +64,7 @@
             id="company-role-input"
             placeholder="eg. RBC, Software Developer"
           />
-          <!-- 2. location (required) -->
+          <!-- location (required) -->
           <label
             class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
             for="location-input"
@@ -77,7 +77,28 @@
             required
             placeholder="eg. In person, Toronto"
           />
-          <!-- 3. application deadline (optional) -->
+
+          <!-- status (required) -->
+          <div class="flex items-center gap-3">
+            <label
+              class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+              for="status-dropdown"
+            >
+              Current status ✱
+            </label>
+            <select
+              class="hover:cursor-pointer hover:bg-white/50 px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+              required
+              id="status-dropdown"
+              lass="flex-1 p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+            >
+              <option>Wishlist</option>
+              <option>Applied</option>
+              <option>Interview</option>
+              <option>Offer</option>
+            </select>
+          </div>
+          <!-- application deadline (optional) -->
           <div class="flex items-center gap-3">
             <label
               class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
@@ -92,28 +113,23 @@
               placeholder="Deadline"
             />
           </div>
-          <!-- 4. status (required) -->
+
+          <!-- link (optional, autofill)-->
           <div class="flex items-center gap-3">
             <label
               class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-              for="status-dropdown"
+              for="link-input"
             >
-              Current status ✱
+              Link
             </label>
-            <select
-              class="hover:cursor-pointer hover:bg-white/50 px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
-              required
-              id="status-dropdown"
-              lass="flex-1 p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
-            >
-              <option disabled selected>Select</option>
-              <option>Wishlist</option>
-              <option>Applied</option>
-              <option>Interview</option>
-              <option>Offer</option>
-            </select>
+            <input
+              id="link-input"
+              class="flex-1 hover:bg-white/50 p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+              type="text"
+              placeholder="Defaults to current tab"
+            />
           </div>
-          <!-- 5. notes(optional) -->
+          <!-- notes(optional) -->
           <textarea
             id="notes-textarea"
             class="px-3 py-2 border hover:bg-white/50 border-gray-400 rounded-lg focus:outline-none focus:bg-white"
@@ -167,7 +183,12 @@
         <div id="job-display">
           <!-- where the jobs will be dynamically added -->
         </div>
-        <p id="empty-state" class="text-gray-600 text-center">No jobs yet.</p>
+        <p
+          id="empty-state"
+          class="text-gray-600 text-center fade-in-bounce-delayed"
+        >
+          No jobs yet.
+        </p>
       </div>
     </section>
     <script src="swal.js"></script>

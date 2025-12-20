@@ -2,12 +2,15 @@ console.clear();
 
 const FORM = document.querySelector("#add-job");
 
+let addJobText = "Add job";
+
 // data from form
 const LOCATION_INPUT = document.getElementById("location-input");
 const COMPANY_ROLE_INPUT = document.getElementById("company-role-input");
 const DEADLINE_INPUT = document.getElementById("deadline-input");
 const NOTES_TEXT = document.getElementById("notes-textarea");
 const STATUS_DROPDOWN = document.getElementById("status-dropdown");
+const LINK_INPUT = document.getElementById("link-input");
 const SUBMIT_BTN = document.getElementById("add-btn");
 
 // change page/display stuff
@@ -41,8 +44,12 @@ let editingJobId = null;
 addAppBtn.addEventListener("click", () => {
   editingJobId = null;
   FORM.reset();
-  SUBMIT_BTN.textContent = "Add job";
+  SUBMIT_BTN.textContent = addJobText;
   addDisplay();
+  // auto-fill the link (future: scrape site and autofill everything)
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    LINK_INPUT.value = tabs[0].url;
+  });
 });
 myJobsBtn.addEventListener("click", jobDisplay);
 
@@ -54,16 +61,24 @@ const addJob = (event) => {
   let notes = NOTES_TEXT.value;
   let location = LOCATION_INPUT.value;
   let status = STATUS_DROPDOWN.value;
+  let link = LINK_INPUT.value;
 
+  // bro need to orhganize this stuff better
   if (editingJobId) {
-    // UPDATE existing job
-    updateJob(editingJobId, { jobTitle, location, deadline, status, notes });
+    updateJob(editingJobId, {
+      jobTitle,
+      link,
+      location,
+      deadline,
+      status,
+      notes,
+    });
     editingJobId = null;
   } else {
-    // CREATE new job
     const newJob = {
       id: Date.now(),
       jobTitle,
+      link,
       location,
       deadline,
       notes,
@@ -86,7 +101,7 @@ const addJob = (event) => {
   }
 
   FORM.reset();
-  SUBMIT_BTN.textContent = "Add job";
+  SUBMIT_BTN.textContent = addJobText;
 };
 
 FORM.addEventListener("submit", addJob);
@@ -129,17 +144,26 @@ const displayJobs = () => {
   }
   EMPTY_STATE.style.display = "none";
   JOB_DISPLAY.innerHTML = filteredJobs.map((j) => createJobCard(j)).join("");
+  // add animation
+  const cards = JOB_DISPLAY.querySelectorAll("[data-job-id]");
+  cards.forEach((card, index) => {
+    card.classList.add("fade-in-bounce-delayed");
+    card.style.animationDelay = `${index * 0.1}s`;
+  });
 
   // give event listeners to created buttons and headers
   filteredJobs.forEach((j) => {
     const jobHeader = document.querySelector(`[data-toggle-id="${j.id}"]`);
     const editBtn = document.querySelector(`[data-edit-id="${j.id}"]`);
     const deleteBtn = document.querySelector(`[data-delete-id="${j.id}"]`);
+    const statusDropdown = document.querySelector(`[data-status-id="${j.id}"]`);
 
     if (jobHeader)
       jobHeader.addEventListener("click", () => toggleJobCard(j.id));
     if (editBtn) editBtn.addEventListener("click", () => openEditModal(j.id));
     if (deleteBtn) deleteBtn.addEventListener("click", () => deleteJob(j.id));
+    if (statusDropdown)
+      statusDropdown.addEventListener("change", () => changeStatus(j.id));
   });
 };
 
@@ -175,7 +199,27 @@ const createJobCard = (job) => {
         <div class="job-details max-h-0 overflow-hidden transition-all duration-300 ease-in-out" id="details-${
           job.id
         }">
+
           <div class="p-4 rounded-b-lg -mt-px bg-white/50">
+
+
+            <div class="flex justify-between">
+                <a href="${
+                  job.link
+                }" target="_blank" class="darumadrop-one-regular my-2 text-left uppercase text-[var(--neutral-brown)] hover:underline text-sm font-bold">View job posting</a>
+                    <select class="darumadrop-one-regular my-2 text-center uppercase text-[var(--tan)] text-sm focus:outline-none font-bold hover:cursor-pointer" data-status-id="${
+                      job.id
+                    }">
+                    
+                        <option disabled selected>✱ ${job.status} ✱</option>
+                        <option>Wishlist</option>
+                        <option>Applied</option>
+                        <option>Interview</option>
+                        <option>Offer</option>
+                    
+                    </select>
+                </div>
+
             <p class="my-2 text-xs text-left"><strong>Location</strong><br> ${
               job.location
             }</p>
@@ -183,16 +227,21 @@ const createJobCard = (job) => {
               job.deadline || "None"
             }</p>
             <p class="my-2 text-xs text-left"><strong>Notes\n</strong><br> ${
-              job.notes || "None"
+              job.notes ? job.notes.replace(/\n/g, "<br>") : "None"
             }</p>
-            <div class="mt-4 flex justify-start gap-2">
-              <button class="edit-btn px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50"  data-edit-id="${
+
+
+            
+            <div class="mt-4 flex justify-end gap-2">
+              <button class="px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50"  data-edit-id="${
                 job.id
               }">Edit</button>
-              <button class="delete-btn px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50" data-delete-id="${
+              <button class="px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50" data-delete-id="${
                 job.id
               }">Delete</button>
             </div>
+
+
           </div>
         </div>
       </div>
@@ -208,6 +257,7 @@ const openEditModal = (jobId) => {
   LOCATION_INPUT.value = job.location;
   DEADLINE_INPUT.value = job.deadline;
   STATUS_DROPDOWN.value = job.status;
+  LINK_INPUT.value = job.link;
   NOTES_TEXT.value = job.notes || "";
 
   SUBMIT_BTN.textContent = "Save Edits";
@@ -229,6 +279,19 @@ const updateJob = (jobId, updatedData) => {
       background: "#f3e9dc",
       color: "#5e3023",
     });
+  }
+};
+
+const changeStatus = (jobId) => {
+  const statusDropdown = document.querySelector(
+    `[data-job-id="${jobId}"] select`
+  );
+  const newStatus = statusDropdown.value;
+
+  const index = jobList.findIndex((j) => j.id === jobId);
+  if (index !== -1) {
+    jobList[index].status = newStatus;
+    saveJobs();
   }
 };
 
@@ -269,3 +332,9 @@ const deleteJob = (jobId) => {
 };
 
 loadJobs();
+
+// want to do:
+// - aethsritc underline Animation
+// - be able to change the status of job w/o having to edit job
+// also want the jobs to be ordered
+// edit the sweet alert make more aesthetic

@@ -5,7 +5,8 @@
   "description": "Never lose track of an application deadline, requirement or contact info again.",
   "permissions": [
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "tabs"
   ],
   "side_panel": {
     "default_path": "panel.html"
