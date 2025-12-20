@@ -24,9 +24,20 @@ const jobs = document.getElementById("jobs");
 const JOB_DISPLAY = document.getElementById("job-display");
 const EMPTY_STATE = document.getElementById("empty-state");
 
+const cancelBtn = document.getElementById("cancel-changes-btn");
+
 //originally hidden
 add.style.display = "none";
 jobs.style.display = "none";
+
+// the cancel btn
+cancelBtn.style.display = "none";
+
+// cancel button event listener
+cancelBtn.addEventListener("click", () => {
+  resetFormState();
+  jobDisplay();
+});
 
 // functions to change displays
 const addDisplay = () => {
@@ -41,10 +52,17 @@ const jobDisplay = () => {
 
 let editingJobId = null;
 
-addAppBtn.addEventListener("click", () => {
+// reset form state: button text, hide cancel btn, no job id.
+const resetFormState = () => {
   editingJobId = null;
   FORM.reset();
+  cancelBtn.style.display = "none";
   SUBMIT_BTN.textContent = addJobText;
+};
+
+addAppBtn.addEventListener("click", () => {
+  resetFormState();
+
   addDisplay();
   // auto-fill the link (future: scrape site and autofill everything)
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -100,8 +118,7 @@ const addJob = (event) => {
     });
   }
 
-  FORM.reset();
-  SUBMIT_BTN.textContent = addJobText;
+  resetFormState();
 };
 
 FORM.addEventListener("submit", addJob);
@@ -260,6 +277,8 @@ const openEditModal = (jobId) => {
   LINK_INPUT.value = job.link;
   NOTES_TEXT.value = job.notes || "";
 
+  // make cancel button visible and change text of add button
+  cancelBtn.style.display = "block";
   SUBMIT_BTN.textContent = "Save Edits";
   addDisplay();
 };
@@ -279,6 +298,8 @@ const updateJob = (jobId, updatedData) => {
       background: "#f3e9dc",
       color: "#5e3023",
     });
+    // go back to the my jobs view
+    jobDisplay();
   }
 };
 
@@ -336,5 +357,7 @@ loadJobs();
 // want to do:
 // - aethsritc underline Animation
 // - be able to change the status of job w/o having to edit job
-// also want the jobs to be ordered
+// also want the jobs to be ordered (wait wha does this mean lol)
 // edit the sweet alert make more aesthetic
+// make it so that u can add requirements as a list, and automatically displays styel
+// make sure code is organized and undersatndable, check for redundancies
