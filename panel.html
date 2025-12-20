@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coco your CO(-op) CO(ordinator)</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="tailwind.js"></script>
+  </head>
+
+  <!-- body -->
+  <body class="nanum-gothic-regular bg-[var(--light-accent)] m-8">
+    <!-- top nav thing for refresh/home
+    <nav class="fixed top-10 left-0 right-0 flex justify-center">
+      <button id="reset" class="hover:cursor-pointer text-xl">↻</button>
+    </nav> -->
+    <section class="flex flex-col items-center min-h-screen mt-20">
+      <!-- 1. intro stuff -->
+      <div id="intro" class="max-w-sm text-center mb-0">
+        <img
+          src="cocologo.png"
+          class="w-24 h-24 object-cover mx-auto mb-2"
+          alt="coco bear logo brown backgrond"
+        />
+        <h1
+          class="darumadrop-one-regular mb-2 mt-2 text-5xl text-[var(--rich-brown)] typing-animation"
+        >
+          Welcome to Coco!
+        </h1>
+        <h2 class="nanum-gothic-bold text-[var(--warm-brown)] text-xs">
+          Your personal CO(-op) CO(ordinator), helping you organize applications
+          for the co-op term.
+        </h2>
+
+        <nav class="p-4 flex justify-center gap-3">
+          <button
+            id="add-app-btn"
+            class="px-3 py-2 border border-gray-400 rounded-lg hover:cursor-pointer transition focus:outline-none focus:bg-white"
+          >
+            Add a job
+          </button>
+          <button
+            id="my-jobs-btn"
+            class="px-3 py-2 border border-gray-400 rounded-lg hover:cursor-pointer transition focus:outline-none focus:bg-white"
+          >
+            My jobs
+          </button>
+        </nav>
+      </div>
+
+      <!-- 2. add jobs form -->
+      <div id="add" class="fade-in-bounce-delayed mt-4">
+        <form id="add-job" class="flex flex-col gap-3 max-w-3xs mx-auto">
+          <!-- 1. company and role (required) -->
+          <label
+            class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+            for="company-role-input"
+            >Company & Role ✱</label
+          >
+          <input
+            class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+            type="text"
+            required
+            id="company-role-input"
+            placeholder="eg. RBC, Software Developer"
+          />
+          <!-- 2. location (required) -->
+          <label
+            class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+            for="location-input"
+            >Location ✱</label
+          >
+          <input
+            class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+            type="text"
+            id="location-input"
+            required
+            placeholder="eg. In person, Toronto"
+          />
+          <!-- 3. application deadline (optional) -->
+          <div class="flex items-center gap-3">
+            <label
+              class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+              for="deadline-input"
+            >
+              Deadline
+            </label>
+            <input
+              id="deadline-input"
+              class="flex-1 hover:bg-white/50 hover:cursor-pointer p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+              type="date"
+              placeholder="Deadline"
+            />
+          </div>
+          <!-- 4. status (required) -->
+          <div class="flex items-center gap-3">
+            <label
+              class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+              for="status-dropdown"
+            >
+              Current status ✱
+            </label>
+            <select
+              class="hover:cursor-pointer hover:bg-white/50 px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+              required
+              id="status-dropdown"
+              lass="flex-1 p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+            >
+              <option disabled selected>Select</option>
+              <option>Wishlist</option>
+              <option>Applied</option>
+              <option>Interview</option>
+              <option>Offer</option>
+            </select>
+          </div>
+          <!-- 5. notes(optional) -->
+          <textarea
+            id="notes-textarea"
+            class="px-3 py-2 border hover:bg-white/50 border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+            name="Notes"
+            placeholder="Notes..."
+          ></textarea>
+          <button
+            type="submit"
+            class="px-3 py-2 rounded-lg hover:cursor-pointer bg-white/50 hover:bg-white transition focus:outline-none focus:bg-white nanum-gothic-bold text-[var(--warm-brown)]"
+            id="add-btn"
+          >
+            Add job
+          </button>
+        </form>
+      </div>
+
+      <div id="jobs" class="fade-in-bounce-delayed">
+        <nav class="p-4 flex justify-center gap-5">
+          <button
+            class="hover:underline underline hover:cursor-pointer filter-btn nanum-gothic-bold text-[var(--neutral-brown)]"
+            data-filter="all"
+          >
+            All
+          </button>
+          <button
+            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
+            data-filter="Wishlist"
+          >
+            Wishlist
+          </button>
+          <button
+            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
+            data-filter="Applied"
+          >
+            Applied
+          </button>
+          <button
+            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
+            data-filter="Interview"
+          >
+            Interview
+          </button>
+          <button
+            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
+            data-filter="Offer"
+          >
+            Offer
+          </button>
+        </nav>
+
+        <div id="job-display">
+          <!-- where the jobs will be dynamically added -->
+        </div>
+        <p id="empty-state" class="text-gray-600 text-center">No jobs yet.</p>
+      </div>
+    </section>
+    <script src="swal.js"></script>
+    <script src="panel.js"></script>
+  </body>
+</html>
