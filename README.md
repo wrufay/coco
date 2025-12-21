@@ -27,10 +27,15 @@
 - chrome storage API to store data in the chrome extension, claude anthropic ai API for ai chat
 
 **installation instructions:**
-since coco is not yet deployed on the chrome store, follow these instructions to use it
 
 1. clone this repo
 2. go to chrome://extensions/
 3. make sure "developer mode" is switched on
 4. click "load unpacked" and upload the coco folder
 5. pin the extension, and use it!
+
+### media
+
+![demo1](media/demo1.png)
+![demo2](media/demo2.png)
+![demo3](media/demo3.png)
