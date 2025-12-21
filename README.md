@@ -37,5 +37,5 @@
 ### media
 
 ![demo1](media/demo1.png)
-![demo2](media/demo2.png)
+
 ![demo3](media/demo3.png)
