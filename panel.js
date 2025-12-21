@@ -394,5 +394,3 @@ loadJobs();
 // help u make a schedule / timelien based on deadlines
 
 // ai could also organize by relevance, role, etc..
-
-// note - when you update the status of a job, want to automatically navigate to that tab

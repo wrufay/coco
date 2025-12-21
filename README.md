@@ -16,10 +16,10 @@
 
 - dark mode / light mode
 - coco ai chat (anthropic claude api - tailored to students)
-  - upload your resume, have it analyze and tweak based on your saved jobs
-  - ask it to organize your jobs, check which ones are top priority
-  - ask coco to find you more jobs based on your personal profile (info you input)
-- link with notion (api integration)
+- autofill job information based on tab link (saving you time)
+- ask coco ai chat for actions to take based on your resume / current jobs in your wishlist (eg. focus on DSA if half of your jobs require or suggest to know that)
+- help you make a schedule / timeline based on deadlines
+- organize long list of jobs by role, company, deadline etc
 
 **tech stack & skills**
 
