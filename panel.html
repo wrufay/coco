@@ -50,53 +50,85 @@
 
       <!-- 2. add jobs form -->
       <div id="add" class="fade-in-bounce-delayed mt-4">
-        <form id="add-job" class="flex flex-col gap-3 max-w-3xs mx-auto">
+        <form id="add-job" class="flex flex-col gap-3 max-w-4xs mx-auto">
           <!-- company and role (required) -->
-          <label
-            class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-            for="company-role-input"
-            >Company & Role ✱</label
-          >
-          <input
-            class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
-            type="text"
-            required
-            id="company-role-input"
-            placeholder="eg. RBC, Software Developer"
-          />
+          <div class="flex flex-row gap-3 justify-center">
+            <div class="flex flex-col">
+              <label
+                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+                for="company-role-input"
+                >Company ✱</label
+              >
+              <input
+                class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+                type="text"
+                required
+                id="company-input"
+                placeholder="eg. RBC"
+              />
+            </div>
+            <div class="flex flex-col">
+              <label
+                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+                for="role-input"
+                >Role ✱</label
+              >
+              <input
+                class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+                type="text"
+                required
+                id="role-input"
+                placeholder="eg. Software Developer Intern"
+              />
+            </div>
+          </div>
           <!-- location (required) -->
-          <label
-            class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-            for="location-input"
-            >Location ✱</label
-          >
-          <input
-            class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
-            type="text"
-            id="location-input"
-            required
-            placeholder="eg. In person, Toronto"
-          />
+          <div class="flex flex-row gap-3 justify-center">
+            <div class="flex flex-col">
+              <label
+                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+                for="location-input"
+                >Location ✱</label
+              >
+              <input
+                class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+                type="text"
+                id="location-input"
+                required
+                placeholder="eg. Toronto, ON"
+              />
+            </div>
+            <div class="flex flex-col">
+              <label
+                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
+                for="type-input"
+                >Type ✱</label
+              >
+              <input
+                class="p-2 hover:bg-white/50 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+                type="text"
+                id="type-input"
+                required
+                placeholder="eg. In person"
+              />
+            </div>
+          </div>
 
-          <!-- status (required) -->
+          <!-- link (required, autofill)-->
           <div class="flex items-center gap-3">
             <label
               class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-              for="status-dropdown"
+              for="link-input"
             >
-              Current status ✱
+              Posting ✱
             </label>
-            <select
-              class="hover:cursor-pointer hover:bg-white/50 px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+            <input
+              id="link-input"
               required
-              id="status-dropdown"
-              lass="flex-1 p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
-            >
-              <option>Wishlist</option>
-              <option>Applied</option>
-              <option>Interview</option>
-              <option>Offer</option>
-            </select>
+              class="flex-1 hover:bg-white/50 p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
+              type="text"
+              placeholder="Defaults to current tab"
+            />
           </div>
           <!-- application deadline (optional) -->
           <div class="flex items-center gap-3">
@@ -111,22 +143,6 @@
               class="flex-1 hover:bg-white/50 hover:cursor-pointer p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
               type="date"
               placeholder="Deadline"
-            />
-          </div>
-
-          <!-- link (optional, autofill)-->
-          <div class="flex items-center gap-3">
-            <label
-              class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-              for="link-input"
-            >
-              Link
-            </label>
-            <input
-              id="link-input"
-              class="flex-1 hover:bg-white/50 p-2 border border-gray-400 rounded-lg focus:outline-none focus:bg-white"
-              type="text"
-              placeholder="Defaults to current tab"
             />
           </div>
           <!-- notes(optional) -->
@@ -150,7 +166,7 @@
               class="w-full px-3 py-2 rounded-lg hover:cursor-pointer bg-white/50 hover:bg-white transition focus:outline-none focus:bg-white nanum-gothic-bold text-[var(--warm-brown)]"
               id="add-btn"
             >
-              Add job
+              Add job to wishlist
             </button>
           </div>
         </form>

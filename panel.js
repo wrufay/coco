@@ -2,14 +2,16 @@ console.clear();
 
 const FORM = document.querySelector("#add-job");
 
-let addJobText = "Add job";
-
 // data from form
 const LOCATION_INPUT = document.getElementById("location-input");
-const COMPANY_ROLE_INPUT = document.getElementById("company-role-input");
+const TYPE_INPUT = document.getElementById("type-input");
+
+const COMPANY_INPUT = document.getElementById("company-input");
+const ROLE_INPUT = document.getElementById("role-input");
+
 const DEADLINE_INPUT = document.getElementById("deadline-input");
 const NOTES_TEXT = document.getElementById("notes-textarea");
-const STATUS_DROPDOWN = document.getElementById("status-dropdown");
+
 const LINK_INPUT = document.getElementById("link-input");
 const SUBMIT_BTN = document.getElementById("add-btn");
 
@@ -57,7 +59,7 @@ const resetFormState = () => {
   editingJobId = null;
   FORM.reset();
   cancelBtn.style.display = "none";
-  SUBMIT_BTN.textContent = addJobText;
+  SUBMIT_BTN.textContent = "Add job to wishlist";
 };
 
 addAppBtn.addEventListener("click", () => {
@@ -74,33 +76,40 @@ myJobsBtn.addEventListener("click", jobDisplay);
 const addJob = (event) => {
   event.preventDefault();
 
-  let jobTitle = COMPANY_ROLE_INPUT.value;
+  let role = ROLE_INPUT.value;
+  let company = COMPANY_INPUT.value;
+  let type = TYPE_INPUT.value;
+  let location = LOCATION_INPUT.value;
+
   let deadline = DEADLINE_INPUT.value;
   let notes = NOTES_TEXT.value;
-  let location = LOCATION_INPUT.value;
-  let status = STATUS_DROPDOWN.value;
+  let status = "Wishlist";
   let link = LINK_INPUT.value;
 
   // bro need to orhganize this stuff better
   if (editingJobId) {
     updateJob(editingJobId, {
-      jobTitle,
-      link,
+      company,
+      role,
       location,
-      deadline,
+      type,
       status,
+      deadline,
+      link,
       notes,
     });
     editingJobId = null;
   } else {
     const newJob = {
       id: Date.now(),
-      jobTitle,
-      link,
+      company,
+      role,
       location,
-      deadline,
-      notes,
+      type,
       status,
+      deadline,
+      link,
+      notes,
     };
     jobList.push(newJob);
     saveJobs();
@@ -128,12 +137,21 @@ let currentFilter = "all";
 
 // filter buttons
 const filterBtns = document.querySelectorAll(".filter-btn");
+
+const setFilter = (filter) => {
+  currentFilter = filter;
+  filterBtns.forEach((btn) => {
+    btn.classList.remove("underline");
+    if (btn.dataset.filter === filter) {
+      btn.classList.add("underline");
+    }
+  });
+  displayJobs();
+};
+
 filterBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
-    currentFilter = btn.dataset.filter;
-    filterBtns.forEach((b) => b.classList.remove("underline"));
-    btn.classList.add("underline");
-    displayJobs();
+    setFilter(btn.dataset.filter);
   });
 });
 
@@ -206,8 +224,8 @@ const createJobCard = (job) => {
         }">
           <div class="text-left flex-1">
             <h3 class="m-0 text-sm font-normal nanum-gothic-extrabold text-[var(--warm-brown)]">${
-              job.jobTitle
-            }</h3>
+              job.role
+            } @ ${job.company}</h3>
           </div>
           <div class="flex items-center gap-3">
             <span class="toggle-icon text-sm text-[var(--warm-brown)] transition-transform duration-300 ease-in-out">▼</span>
@@ -224,11 +242,11 @@ const createJobCard = (job) => {
                 <a href="${
                   job.link
                 }" target="_blank" class="darumadrop-one-regular my-2 text-left uppercase text-[var(--neutral-brown)] hover:underline text-sm font-bold">View job posting</a>
-                    <select class="darumadrop-one-regular my-2 text-center uppercase text-[var(--tan)] text-sm focus:outline-none font-bold hover:cursor-pointer" data-status-id="${
+                    <select class="darumadrop-one-regular my-2 text-center text-[var(--tan)] text-sm focus:outline-none font-bold hover:cursor-pointer" data-status-id="${
                       job.id
                     }">
                     
-                        <option disabled selected>✱ ${job.status} ✱</option>
+                        <option disabled selected>✱ ${job.status.toUpperCase()} ✱</option>
                         <option>Wishlist</option>
                         <option>Applied</option>
                         <option>Interview</option>
@@ -239,7 +257,7 @@ const createJobCard = (job) => {
 
             <p class="my-2 text-xs text-left"><strong>Location</strong><br> ${
               job.location
-            }</p>
+            } (${job.type})</p>
             <p class="my-2 text-xs text-left"><strong>Deadline\n</strong> <br>${
               job.deadline || "None"
             }</p>
@@ -270,10 +288,13 @@ const openEditModal = (jobId) => {
   if (!job) return;
 
   editingJobId = jobId;
-  COMPANY_ROLE_INPUT.value = job.jobTitle;
+  COMPANY_INPUT.value = job.company;
+  ROLE_INPUT.value = job.role;
+  TYPE_INPUT.value = job.type;
+
   LOCATION_INPUT.value = job.location;
   DEADLINE_INPUT.value = job.deadline;
-  STATUS_DROPDOWN.value = job.status;
+
   LINK_INPUT.value = job.link;
   NOTES_TEXT.value = job.notes || "";
 
@@ -313,6 +334,8 @@ const changeStatus = (jobId) => {
   if (index !== -1) {
     jobList[index].status = newStatus;
     saveJobs();
+    // automatically navigate to the filter tab matching the new status
+    setFilter(newStatus);
   }
 };
 
@@ -361,3 +384,15 @@ loadJobs();
 // edit the sweet alert make more aesthetic
 // make it so that u can add requirements as a list, and automatically displays styel
 // make sure code is organized and undersatndable, check for redundancies
+// style the status update dropdown
+
+// AI FEATURES TO ADD:
+// autofill
+// ai chat to ask about actions to take based on your resume / current jobs u applied to
+// (eg. help manage prioritiesor which skills to work on,
+// like dsa interview prep or maybe work on learning backend apis based on ur current wishlist of jobs
+// help u make a schedule / timelien based on deadlines
+
+// ai could also organize by relevance, role, etc..
+
+// note - when you update the status of a job, want to automatically navigate to that tab
