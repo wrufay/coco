@@ -13,7 +13,7 @@
   },
   "action": {
     "default_title": "Open Coco",
-    "default_icon": "cocologo.png"
+    "default_icon": "media/cocologo.png"
   },
   "background": {
     "service_worker": "bg.js"
