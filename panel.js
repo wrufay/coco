@@ -178,7 +178,7 @@ const displayJobs = () => {
     return;
   }
   EMPTY_STATE.style.display = "none";
-  JOB_DISPLAY.innerHTML = filteredJobs.map((j) => createJobCard(j)).join("");
+  JOB_DISPLAY.innerHTML = filteredJobs.map((j, index) => createJobCard(j, index + 1)).join("");
   // add animation
   const cards = JOB_DISPLAY.querySelectorAll("[data-job-id]");
   cards.forEach((card, index) => {
@@ -216,14 +216,14 @@ function toggleJobCard(jobId) {
   }
 }
 
-const createJobCard = (job) => {
+const createJobCard = (job, number) => {
   return `
       <div class="mb-3 max-w-sm mx-auto" data-job-id="${job.id}">
-        <div class="p-3 rounded-lg bg-transparent flex justify-between items-center cursor-pointer transition-all duration-200 bg-white/50" data-toggle-id="${
+        <div class="p-3 rounded-lg flex justify-between items-center cursor-pointer transition-all duration-200 hover:bg-white/50" data-toggle-id="${
           job.id
         }">
           <div class="text-left flex-1">
-            <h3 class="m-0 text-sm font-normal nanum-gothic-extrabold text-[var(--warm-brown)]">${
+            <h3 class="m-0 text-sm font-normal nanum-gothic-extrabold text-[var(--warm-brown)]">${number}. ${
               job.role
             } @ ${job.company}</h3>
           </div>
@@ -235,7 +235,7 @@ const createJobCard = (job) => {
           job.id
         }">
 
-          <div class="p-4 rounded-b-lg -mt-px bg-white/50">
+          <div class="p-4 rounded-b-lg -mt-px bg-white/50 ">
 
 
             <div class="flex justify-between">

@@ -6,6 +6,7 @@
   --warm-brown: #c08552;
   --rich-brown: #5e3023;
   --neutral-brown: #895737;
+  --neutral-brown-50: rgba(137, 87, 55, 0.5);
   --tan: #dab49d;
 }
 
@@ -45,10 +46,20 @@ html {
   scroll-behavior: smooth;
 }
 
+body {
+  color: var(--rich-brown);
+}
+
+::placeholder {
+  color: var(--rich-brown);
+  opacity: 0.5;
+}
+
+
 /* animations */
-/* * {
+* {
   transition: 0.3s ease;
-} */
+}
 
 .typing-animation {
   display: inline-block;

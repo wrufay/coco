@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Coco 🧸",
-  "version": "1.0",
-  "description": "Never lose track of an application deadline, requirement or contact info again.",
+  "name": "coco ೀ⋆｡˚",
+  "version": "0.6.7",
+  "description": "never stress over job applications again.",
   "permissions": [
     "storage",
     "sidePanel",
@@ -11,9 +11,20 @@
   "side_panel": {
     "default_path": "panel.html"
   },
+  "icons": {
+    "16": "media/cocologo.png",
+    "32": "media/cocologo.png",
+    "48": "media/cocologo.png",
+    "128": "media/cocologo.png"
+  },
   "action": {
     "default_title": "Open Coco",
-    "default_icon": "media/cocologo.png"
+    "default_icon": {
+      "16": "media/cocologo.png",
+      "32": "media/cocologo.png",
+      "48": "media/cocologo.png",
+      "128": "media/cocologo.png"
+    }
   },
   "background": {
     "service_worker": "bg.js"
