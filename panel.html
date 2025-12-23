@@ -8,12 +8,7 @@
     <script src="pkgs/tailwind.js"></script>
   </head>
 
-  <!-- body -->
   <body class="nanum-gothic-regular bg-[var(--light-accent)]">
-    <!-- top nav thing for refresh/home
-    <nav class="fixed top-10 left-0 right-0 flex justify-center">
-      <button id="reset" class="hover:cursor-pointer text-xl">↻</button>
-    </nav> -->
     <section class="flex flex-col items-center min-h-screen pt-16 px-8">
       <!-- 1. intro stuff -->
       <div id="intro" class="max-w-sm text-center mb-0">
@@ -33,217 +28,71 @@
         </h2>
 
         <nav class="p-4 flex justify-center gap-3">
-          <button
-            id="add-app-btn"
-            class="px-3 py-2 rounded-lg border border-[var(--neutral-brown)] hover:cursor-pointer transition focus:outline-none text-[var(--neutral-brown)] nanum-gothic-extrabold text-sm"
-          >
-            Add a job
-          </button>
-          <button
-            id="my-jobs-btn"
-            class="px-3 py-2 rounded-lg border border-[var(--neutral-brown)] hover:cursor-pointer transition focus:outline-none nanum-gothic-extrabold text-[var(--neutral-brown)] text-sm"
-          >
-            My jobs
-          </button>
+          <button id="add-app-btn" class="nav-btn">Add a job</button>
+          <button id="my-jobs-btn" class="nav-btn">My jobs</button>
         </nav>
       </div>
 
       <!-- 2. add jobs form -->
       <div id="add" class="fade-in-bounce-delayed mt-6">
         <form id="add-job" class="flex flex-col gap-4 max-w-4xs mx-auto">
-          <!-- company and role (required) -->
           <div class="flex flex-row gap-3 justify-center">
             <div class="flex flex-col">
-              <label
-                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-                for="company-role-input"
-                >Company ✱</label
-              >
-              <input
-                class="p-2 bg-white/50 hover:bg-white border-none rounded-lg focus:outline-none focus:bg-white"
-                type="text"
-                required
-                id="company-input"
-                placeholder="eg. RBC"
-              />
+              <label class="form-label" for="company-input">Company ✱</label>
+              <input class="form-input" type="text" required id="company-input" placeholder="eg. RBC" />
             </div>
             <div class="flex flex-col">
-              <label
-                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-                for="role-input"
-                >Role ✱</label
-              >
-              <input
-                class="p-2 bg-white/50 hover:bg-white border-none rounded-lg focus:outline-none focus:bg-white"
-                type="text"
-                required
-                id="role-input"
-                placeholder="eg. Software Developer Intern"
-              />
+              <label class="form-label" for="role-input">Role ✱</label>
+              <input class="form-input" type="text" required id="role-input" placeholder="eg. Software Developer Intern" />
             </div>
           </div>
-          <!-- location (required) -->
           <div class="flex flex-row gap-3 justify-center">
             <div class="flex flex-col">
-              <label
-                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-                for="location-input"
-                >Location ✱</label
-              >
-              <input
-                class="p-2 bg-white/50 hover:bg-white border-none rounded-lg focus:outline-none focus:bg-white"
-                type="text"
-                id="location-input"
-                required
-                placeholder="eg. Toronto, ON"
-              />
+              <label class="form-label" for="location-input">Location ✱</label>
+              <input class="form-input" type="text" id="location-input" required placeholder="eg. Toronto, ON" />
             </div>
             <div class="flex flex-col">
-              <label
-                class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-                for="type-input"
-                >Type ✱</label
-              >
-              <input
-                class="p-2 bg-white/50 hover:bg-white border-none rounded-lg focus:outline-none focus:bg-white"
-                type="text"
-                id="type-input"
-                required
-                placeholder="eg. In person"
-              />
+              <label class="form-label" for="type-input">Type ✱</label>
+              <input class="form-input" type="text" id="type-input" required placeholder="eg. In person" />
             </div>
           </div>
 
-          <!-- link (required, autofill)-->
           <div class="flex items-center gap-3">
-            <label
-              class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-              for="link-input"
-            >
-              Posting ✱
-            </label>
-            <input
-              id="link-input"
-              required
-              class="flex-1 bg-white/50 hover:bg-white p-2 border-none rounded-lg focus:outline-none focus:bg-white"
-              type="text"
-              placeholder="Defaults to current tab"
-            />
+            <label class="form-label" for="link-input">Posting ✱</label>
+            <input id="link-input" required class="form-input flex-1" type="text" placeholder="Defaults to current tab" />
           </div>
-          <!-- application deadline (optional) -->
           <div class="flex items-center gap-3">
-            <label
-              class="uppercase text-[var(--neutral-brown)] text-xs font-bold"
-              for="deadline-input"
-            >
-              Deadline
-            </label>
-            <input
-              id="deadline-input"
-              class="flex-1 bg-white/50 hover:bg-white hover:cursor-pointer p-2 border-none rounded-lg focus:outline-none focus:bg-white"
-              type="date"
-              placeholder="Deadline"
-            />
+            <label class="form-label" for="deadline-input">Deadline</label>
+            <input id="deadline-input" class="form-input flex-1 hover:cursor-pointer" type="date" />
           </div>
-          <!-- notes(optional) -->
-          <textarea
-            id="notes-textarea"
-            class="px-3 py-2 border-none bg-white/50 hover:bg-white rounded-lg focus:outline-none focus:bg-white"
-            name="Notes"
-            placeholder="Notes..."
-          ></textarea>
+          <textarea id="notes-textarea" class="form-input px-3 py-2" name="Notes" placeholder="Notes..."></textarea>
 
           <div class="flex justify-center gap-3 w-full">
-            <button
-              type="button"
-              class="w-full px-3 py-2 rounded-lg hover:cursor-pointer bg-white/50 hover:bg-white transition focus:outline-none focus:bg-white nanum-gothic-bold text-[var(--warm-brown)]"
-              id="cancel-changes-btn"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="w-full px-3 py-2 rounded-lg hover:cursor-pointer transition focus:outline-none bg-white nanum-gothic-bold text-[var(--warm-brown)]"
-              id="add-btn"
-            >
-              Add job to wishlist
-            </button>
+            <button type="button" class="form-btn bg-white/50 hover:bg-white" id="cancel-changes-btn">Cancel</button>
+            <button type="submit" class="form-btn bg-white" id="add-btn">Add job to wishlist</button>
           </div>
         </form>
       </div>
 
       <div id="jobs" class="fade-in-bounce-delayed mt-6">
         <nav class="p-4 flex justify-center gap-5">
-          <button
-            class="hover:underline underline hover:cursor-pointer filter-btn nanum-gothic-bold text-[var(--neutral-brown)]"
-            data-filter="all"
-          >
-            All
-          </button>
-          <button
-            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
-            data-filter="Wishlist"
-          >
-            Wishlist
-          </button>
-          <button
-            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
-            data-filter="Applied"
-          >
-            Applied
-          </button>
-          <button
-            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
-            data-filter="Interview"
-          >
-            Interview
-          </button>
-          <button
-            class="hover:underline hover:cursor-pointer filter-btn text-[var(--neutral-brown)] nanum-gothic-bold"
-            data-filter="Offer"
-          >
-            Offer
-          </button>
+          <button class="filter-btn underline" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="Wishlist">Wishlist</button>
+          <button class="filter-btn" data-filter="Applied">Applied</button>
+          <button class="filter-btn" data-filter="Interview">Interview</button>
+          <button class="filter-btn" data-filter="Offer">Offer</button>
         </nav>
 
-        <!-- where the jobs will be dynamically added -->
         <div class="flex justify-center mb-2">
-          <button
-            id="backToFolders"
-            class="text-xs text-gray-500 rounded-lg mb-2 px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer"
-          ></button>
+          <button id="backToFolders" class="text-xs text-gray-500 rounded-lg mb-2 px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer"></button>
         </div>
         <div id="job-display">
-          <div id="job-list"></div>
-          <!-- container to make sure the folders are in a grid when displayed -->
-          <div id="folders-container" class="grid grid-cols-3 gap-4">
-            <!-- **** LOADING INDICATOR FOR CATEGORIES **** -->
-            <div
-              id="loading-categories"
-              class="col-span-3 text-center py-8"
-              style="display: none"
-            >
-              <div
-                class="inline-block w-8 h-8 border-4 border-[var(--neutral-brown)] border-t-transparent rounded-full animate-spin"
-              ></div>
-            </div>
-            <!-- **** END LOADING INDICATOR **** -->
-          </div>
+          <div id="folders-container" class="grid grid-cols-3 gap-4"></div>
         </div>
         <div class="text-center mt-4">
-          <button
-            id="reorganizeBtn"
-            class="px-2 py-1 text-xs text-[var(--neutral-brown)] hover:underline mt-2 hover:cursor-pointer nanum-gothic-bold"
-          >
-            ↻ Reorganize
-          </button>
+          <button id="reorganizeBtn" class="px-2 py-1 text-xs text-[var(--neutral-brown)] hover:underline mt-2 hover:cursor-pointer nanum-gothic-bold">↻ Reorganize</button>
         </div>
-        <p
-          id="empty-state"
-          class="text-gray-600 text-center fade-in-bounce-delayed"
-        >
-          No jobs yet.
-        </p>
+        <p id="empty-state" class="text-gray-600 text-center fade-in-bounce-delayed">No jobs yet.</p>
       </div>
     </section>
     <script src="pkgs/swal.js"></script>

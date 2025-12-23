@@ -1,45 +1,31 @@
 @import url("https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Nanum+Gothic:wght@400;700;800&display=swap");
 
-/* COLOUR VARIABLES */
 :root {
   --light-accent: #f3e9dc;
   --warm-brown: #c08552;
   --rich-brown: #5e3023;
   --neutral-brown: #895737;
-  --neutral-brown-50: rgba(137, 87, 55, 0.5);
   --tan: #dab49d;
 }
 
-/* FONTS (classes) */
 .darumadrop-one-regular {
   font-family: "Darumadrop One", sans-serif;
   font-weight: 400;
-  font-style: normal;
 }
 
 .nanum-gothic-regular {
   font-family: "Nanum Gothic", sans-serif;
   font-weight: 400;
-  font-style: normal;
 }
 
 .nanum-gothic-bold {
   font-family: "Nanum Gothic", sans-serif;
   font-weight: 700;
-  font-style: normal;
 }
 
 .nanum-gothic-extrabold {
   font-family: "Nanum Gothic", sans-serif;
   font-weight: 800;
-  font-style: normal;
-}
-
-/* custom general styling */
-
-/* can probably do this with tailwind */
-#label {
-  line-height: 1.5;
 }
 
 html {
@@ -55,7 +41,6 @@ body {
   opacity: 0.5;
 }
 
-/* animations */
 * {
   transition: 0.3s ease;
 }
@@ -104,21 +89,6 @@ body {
   }
 }
 
-.fade-in {
-  opacity: 0;
-  animation: fadeIn 0.6s ease-out forwards;
-}
-
-.delay-1 {
-  animation-delay: 3s;
-}
-
-@keyframes fadeIn {
-  to {
-    opacity: 1;
-  }
-}
-
 .fade-in-bounce-delayed {
   opacity: 0;
   animation: fadeInBounce 0.4s ease-out 0.1s forwards;
@@ -136,7 +106,6 @@ body {
   }
 }
 
-/* job folder */
 .folder {
   width: 75px;
   cursor: pointer;
@@ -147,14 +116,79 @@ body {
 }
 
 .folder-label {
-  /* put tailwind classes in here for reusability */
   text-transform: lowercase;
   font-family: "Nanum Gothic", sans-serif;
   font-weight: 800;
-  color: #4b5563; /* gray-600 */
-  font-size: 0.75rem; /* 12px */
-  line-height: 1rem; /* 16px */
+  color: #4b5563;
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
+
 #empty-state {
   display: none;
+}
+
+.nav-btn {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--neutral-brown);
+  cursor: pointer;
+  transition: all 0.3s;
+  color: var(--neutral-brown);
+  font-family: "Nanum Gothic", sans-serif;
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+
+.nav-btn:focus {
+  outline: none;
+}
+
+.form-label {
+  text-transform: uppercase;
+  color: var(--neutral-brown);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.form-input {
+  padding: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.5);
+  border: none;
+  border-radius: 0.5rem;
+}
+
+.form-input:hover {
+  background-color: white;
+}
+
+.form-input:focus {
+  outline: none;
+  background-color: white;
+}
+
+.form-btn {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: "Nanum Gothic", sans-serif;
+  font-weight: 700;
+  color: var(--warm-brown);
+}
+
+.form-btn:focus {
+  outline: none;
+}
+
+.filter-btn {
+  cursor: pointer;
+  color: var(--neutral-brown);
+  font-family: "Nanum Gothic", sans-serif;
+  font-weight: 700;
+}
+
+.filter-btn:hover {
+  text-decoration: underline;
 }
