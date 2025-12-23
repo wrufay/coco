@@ -1,77 +1,77 @@
-// import api key
 import { CLAUDE_API_KEY } from "./config.js";
 
-//  open side panel
+const CLAUDE_API_CONFIG = {
+  url: "https://api.anthropic.com/v1/messages",
+  model: "claude-sonnet-4-20250514",
+  maxTokens: 2048,
+  version: "2023-06-01",
+};
+
+const CATEGORIZATION_PROMPT = `
+Analyze these job descriptions and group them by role type.
+Rules for categorization:
+- Use SHORT category names (1-3 words max)
+- Use common abbreviations (SWE, PM, UI/UX, etc.)
+- Make distinctions between different but similar roles
+- Keep categories broad enough to be useful (aim for 3-6 total categories)
+- Try not to have more than 6-7 jobs in one category
+- Examples: "SWE", "Product", "Design", "Data", "Other"
+- Make sure to consider other industries and careers as well, do not classify non-tech jobs as tech
+
+Jobs:
+{jobs}
+
+Return JSON with "categories" array containing objects with "name" and "jobIds" fields.
+`;
+
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ windowId: tab.windowId });
 });
 
-// api calling
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === "categorizeJobs") {
     categorizeJobs(request.jobs)
-      .then((categories) => {
-        sendResponse({ success: true, categories });
-      })
-      .catch((error) => {
-        // catch error
-        sendResponse({ success: false, error: error.message });
-      });
+      .then((categories) => sendResponse({ success: true, categories }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
   }
 });
 
+const extractJSONFromResponse = (responseText) => {
+  if (responseText.includes("```json")) {
+    return responseText.split("```json")[1].split("```")[0].trim();
+  }
+  if (responseText.includes("```")) {
+    return responseText.split("```")[1].split("```")[0].trim();
+  }
+  return responseText;
+};
+
 async function categorizeJobs(jobs) {
-  // takes jobs array, asks claude to organize by category
+  const jobsText = jobs
+    .map((job) => `ID: ${job.id}, Role: ${job.role}, Company: ${job.company}`)
+    .join("\n");
 
-  // organizing by role type for now - later can also do location or company
-  const prompt = `
-    Analyze these job descriptions and group them by role type.
-    Rules for categorization:
-  - Use SHORT category names (1-3 words max)
-  - Use common abbreviations (SWE, PM, UI/UX, etc.)
-  - Group similar roles together (don't over-split)
-  - Keep categories broad enough to be useful (aim for 3-6 total categories)
-  - Examples: "SWE", "Product", "Design", "Data", "DevOps"
+  const prompt = CATEGORIZATION_PROMPT.replace("{jobs}", jobsText);
 
-    Jobs:
-    ${jobs
-      .map((job) => `ID: ${job.id}, Role: ${job.role}, Company: ${job.company}`)
-      .join("\n")}
-
-    Return JSON with "categories" array containing objects with "name" and "jobIds" fields.
-    `;
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch(CLAUDE_API_CONFIG.url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": CLAUDE_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "anthropic-version": CLAUDE_API_CONFIG.version,
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
+      model: CLAUDE_API_CONFIG.model,
+      max_tokens: CLAUDE_API_CONFIG.maxTokens,
       messages: [{ role: "user", content: prompt }],
     }),
   });
+
   const data = await response.json();
-
-  const responseText = data.content[0].text;
-
-  // extract JSON
-  let jsonText = responseText;
-  if (responseText.includes("```json")) {
-    // remove ```json at start and ``` at end
-    jsonText = responseText.split("```json")[1].split("```")[0].trim();
-  } else if (responseText.includes("```")) {
-    // remove ``` at start and ``` at end
-    jsonText = responseText.split("```")[1].split("```")[0].trim();
-  }
-
-  // console.log("Background: Cleaned JSON text:", jsonText);
-
+  const jsonText = extractJSONFromResponse(data.content[0].text);
   const result = JSON.parse(jsonText);
-  // console.log("Background: Parsed result:", result);
+
   return result.categories;
 }
