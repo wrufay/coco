@@ -27,10 +27,12 @@ async function categorizeJobs(jobs) {
   // organizing by role type for now - later can also do location or company
   const prompt = `
     Analyze these job descriptions and group them by role type.
-    Keep the categories as brief as possible, with no parenthesis or additional information
-    Use abbreviations when possible, such as "swe" for "software engineering" to sound more quirky and gen-z.
-    Make distinctions between similar roles such as "software development" and "software engineering".
-    Your job is to make the roles as easy as possible for the user to navigate.
+    Rules for categorization:
+  - Use SHORT category names (1-3 words max)
+  - Use common abbreviations (SWE, PM, UI/UX, etc.)
+  - Group similar roles together (don't over-split)
+  - Keep categories broad enough to be useful (aim for 3-6 total categories)
+  - Examples: "SWE", "Product", "Design", "Data", "DevOps"
 
     Jobs:
     ${jobs

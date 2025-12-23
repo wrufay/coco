@@ -324,7 +324,8 @@ const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
 
   filteredRoles.forEach((role) => {
     const folderDiv = document.createElement("div");
-    folderDiv.className = "folder flex flex-col text-center fade-in-bounce-delayed";
+    folderDiv.className =
+      "folder flex flex-col text-center fade-in-bounce-delayed";
 
     folderDiv.innerHTML = `
     <img class="folder-img" src="/media/folder-icon.png" />
@@ -515,6 +516,19 @@ async function autoCategorize() {
     loadingElement.style.display = "block";
   }
 
+  // Disable reorganize button during loading
+  const reorganizeBtn = document.getElementById("reorganizeBtn");
+  reorganizeBtn.disabled = true;
+  reorganizeBtn.style.opacity = "0.5";
+  reorganizeBtn.style.cursor = "not-allowed";
+
+  // Disable filter buttons during loading
+  filterBtns.forEach((btn) => {
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+    btn.style.cursor = "not-allowed";
+  });
+
   chrome.storage.local.get(["jobs"], (result) => {
     const jobs = result.jobs || [];
     chrome.runtime.sendMessage(
@@ -525,6 +539,18 @@ async function autoCategorize() {
           loadingElement.style.display = "none";
         }
         //end loading
+
+        // Re-enable reorganize button
+        reorganizeBtn.disabled = false;
+        reorganizeBtn.style.opacity = "1";
+        reorganizeBtn.style.cursor = "pointer";
+
+        // Re-enable filter buttons
+        filterBtns.forEach((btn) => {
+          btn.disabled = false;
+          btn.style.opacity = "1";
+          btn.style.cursor = "pointer";
+        });
 
         if (response && response.success) {
           cachedCategories = response.categories;
@@ -694,9 +720,7 @@ reorganizeBtn.addEventListener("click", () => {
   if (container) {
     container.innerHTML = `
       <div id="loading-categories" class="col-span-3 text-center py-8">
-        <div class="text-[var(--neutral-brown)] nanum-gothic-bold">
-          <div class="animate-pulse">Loading categories...</div>
-        </div>
+        <div class="inline-block w-8 h-8 border-4 border-[var(--neutral-brown)] border-t-transparent rounded-full animate-spin"></div>
       </div>
     `;
   }
