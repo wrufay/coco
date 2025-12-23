@@ -55,7 +55,6 @@ body {
   opacity: 0.5;
 }
 
-
 /* animations */
 * {
   transition: 0.3s ease;
@@ -129,10 +128,33 @@ body {
 @keyframes fadeInBounce {
   0% {
     opacity: 0;
-    transform: translateY(5px);
+    translate: 0 5px;
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    translate: 0 0;
   }
+}
+
+/* job folder */
+.folder {
+  width: 75px;
+  cursor: pointer;
+}
+
+.folder:hover {
+  transform: scale(1.1);
+}
+
+.folder-label {
+  /* put tailwind classes in here for reusability */
+  text-transform: lowercase;
+  font-family: "Nanum Gothic", sans-serif;
+  font-weight: 800;
+  color: #4b5563; /* gray-600 */
+  font-size: 0.75rem; /* 12px */
+  line-height: 1rem; /* 16px */
+}
+#empty-state {
+  display: none;
 }

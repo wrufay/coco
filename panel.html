@@ -206,8 +206,37 @@
           </button>
         </nav>
 
+        <!-- where the jobs will be dynamically added -->
+        <div class="flex justify-center mb-2">
+          <button
+            id="backToFolders"
+            class="text-xs text-[var(--warm-brown)] bg-white/50 hover:bg-white rounded-lg px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer"
+          ></button>
+        </div>
         <div id="job-display">
-          <!-- where the jobs will be dynamically added -->
+          <div id="job-list"></div>
+          <!-- container to make sure the folders are in a grid when displayed -->
+          <div id="folders-container" class="grid grid-cols-3 gap-4">
+            <!-- **** LOADING INDICATOR FOR CATEGORIES **** -->
+            <div
+              id="loading-categories"
+              class="col-span-3 text-center py-8"
+              style="display: none"
+            >
+              <div class="text-[var(--neutral-brown)] nanum-gothic-bold">
+                <div class="animate-pulse">Loading categories...</div>
+              </div>
+            </div>
+            <!-- **** END LOADING INDICATOR **** -->
+          </div>
+        </div>
+        <div class="text-center mt-4">
+          <button
+            id="reorganizeBtn"
+            class="px-2 py-1 text-xs text-[var(--neutral-brown)] hover:underline hover:cursor-pointer nanum-gothic-bold"
+          >
+            ↻ Reorganize
+          </button>
         </div>
         <p
           id="empty-state"

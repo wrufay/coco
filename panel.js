@@ -112,6 +112,11 @@ const addJob = (event) => {
       notes,
     };
     jobList.push(newJob);
+
+    // Try to add to existing category, otherwise recategorize
+    if (!addJobToCategory(newJob)) {
+      cachedCategories = null; // Force recategorization
+    }
     saveJobs();
 
     Swal.fire({
@@ -125,6 +130,10 @@ const addJob = (event) => {
       background: "#f3e9dc",
       color: "#5e3023",
     });
+
+    // Navigate to jobs view
+    jobDisplay();
+    setFilter("Wishlist");
   }
 
   resetFormState();
@@ -146,7 +155,16 @@ const setFilter = (filter) => {
       btn.classList.add("underline");
     }
   });
-  displayJobs();
+
+  // Reset to folder view when changing filters
+  JOB_DISPLAY.innerHTML = `<div
+            id="folders-container"
+            class="grid grid-cols-3 gap-4"
+          >
+          </div>`;
+  document.getElementById("backToFolders").style.display = "none";
+
+  displayFolders();
 };
 
 filterBtns.forEach((btn) => {
@@ -157,33 +175,60 @@ filterBtns.forEach((btn) => {
 
 // chrome storage
 const saveJobs = () => {
-  chrome.storage.local.set({ jobs: jobList }, () => {
-    displayJobs(); // refresh
-  });
+  chrome.storage.local.set(
+    { jobs: jobList, categories: cachedCategories },
+    () => {
+      // If categories were cleared, regenerate them
+      if (!cachedCategories) {
+        autoCategorize();
+      } else {
+        displayFolders(); // refresh
+      }
+    }
+  );
 };
 const loadJobs = () => {
-  chrome.storage.local.get(["jobs"], (result) => {
+  chrome.storage.local.get(["jobs", "categories"], (result) => {
     jobList = result.jobs || [];
-    displayJobs();
+    // Load saved categories if they exist
+    if (result.categories && result.categories.length > 0) {
+      cachedCategories = result.categories;
+      displayFolders();
+    } else {
+      // No saved categories, ai make category
+      autoCategorize();
+    }
   });
 };
-const displayJobs = () => {
-  let filteredJobs = jobList;
-  if (currentFilter != "all") {
-    filteredJobs = jobList.filter((j) => j.status === currentFilter);
-  }
+
+// **flexible quick fix for parameters, make it better and more readable later
+const displayJobs = (jobs = jobList) => {
+  // Use the passed jobs parameter instead of re-filtering from jobList
+  let filteredJobs = jobs;
   if (filteredJobs.length == 0) {
-    JOB_DISPLAY.innerHTML = "";
+    JOB_DISPLAY.innerHTML = `<div
+            id="folders-container"
+            class="grid grid-cols-3 gap-4"
+          >
+          </div>`;
     EMPTY_STATE.style.display = "block";
+    document.getElementById("reorganizeBtn").style.display = "none";
     return;
   }
   EMPTY_STATE.style.display = "none";
-  JOB_DISPLAY.innerHTML = filteredJobs.map((j, index) => createJobCard(j, index + 1)).join("");
+  document.getElementById("reorganizeBtn").style.display = "inline-block";
+
+  JOB_DISPLAY.innerHTML = filteredJobs
+    .map((j, index) => createJobCard(j, index + 1))
+    .join("");
+
+  // for testing folder design
+  //   JOB_DISPLAY.innerHTML = createJobFolder();
+
   // add animation
   const cards = JOB_DISPLAY.querySelectorAll("[data-job-id]");
-  cards.forEach((card, index) => {
+  cards.forEach((card) => {
     card.classList.add("fade-in-bounce-delayed");
-    card.style.animationDelay = `${index * 0.1}s`;
   });
 
   // give event listeners to created buttons and headers
@@ -202,6 +247,7 @@ const displayJobs = () => {
   });
 };
 
+//toggle, open info when u click the job name (collapsable)
 function toggleJobCard(jobId) {
   const details = document.getElementById(`details-${jobId}`);
   const card = document.querySelector(`[data-job-id="${jobId}"]`);
@@ -216,6 +262,119 @@ function toggleJobCard(jobId) {
   }
 }
 
+// create job folder (not using rn, just to test the ui dynamically)
+// const createJobFolder = (role) => {
+//   return `
+//     <div class="folder flex flex-col text-center">
+//         <img class="folder-img" src="/media/folder-icon.png" />
+//         <span class="folder-label">${role}</span>
+//     </div>
+//   `;
+// };
+
+// display all folders after getting claude to organize them
+// ******
+const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
+  const container = document.getElementById("folders-container");
+  // ******
+  if (!container) return;
+
+  // if no categories yet, don't try to display
+  if (!roles || roles.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+  // ******
+
+  container.innerHTML = ""; //reset it
+
+  // ******
+  // filter jobs based on currentFilter
+  let filteredJobs = allJobs;
+  if (currentFilter !== "all") {
+    filteredJobs = allJobs.filter((j) => j.status === currentFilter);
+  }
+
+  // filter roles to only show ones with jobs matching the filter
+  const filteredRoles = roles
+    .map((role) => {
+      const matchingJobIds = role.jobIds.filter((id) =>
+        filteredJobs.some((j) => j.id === id)
+      );
+      return { ...role, jobIds: matchingJobIds };
+    })
+    .filter((role) => role.jobIds.length > 0);
+
+  // show empty state if no matching folders
+  if (filteredRoles.length === 0) {
+    EMPTY_STATE.style.display = "block";
+    document.getElementById("reorganizeBtn").style.display = "none";
+    return;
+  }
+
+  EMPTY_STATE.style.display = "none";
+
+  // Only show reorganize button on "all" filter
+  if (currentFilter === "all") {
+    document.getElementById("reorganizeBtn").style.display = "inline-block";
+  } else {
+    document.getElementById("reorganizeBtn").style.display = "none";
+  }
+  // ******
+
+  filteredRoles.forEach((role) => {
+    const folderDiv = document.createElement("div");
+    folderDiv.className = "folder flex flex-col text-center fade-in-bounce-delayed";
+
+    folderDiv.innerHTML = `
+    <img class="folder-img" src="/media/folder-icon.png" />
+    <span class="folder-label">${role.name} (${role.jobIds.length})</span>
+    `;
+    // add event listener here to show all....
+    // ******
+    folderDiv.addEventListener("click", () => {
+      showJobs(role, filteredJobs);
+    });
+    // ******
+
+    container.appendChild(folderDiv);
+  });
+};
+
+// show jobs
+const showJobs = (role, filteredJobs) => {
+  // Only show jobs that are in this folder AND match the current filter
+  const curJobs = filteredJobs.filter((j) => role.jobIds.includes(j.id));
+  //  hide folders
+  document.getElementById("folders-container").style.display = "none";
+  displayJobs(curJobs);
+  // Hide reorganize button when showing job list (must be after displayJobs)
+  document.getElementById("reorganizeBtn").style.display = "none";
+  // make this function
+  showBackButton();
+};
+
+// make bac button
+const showBackButton = () => {
+  const backBtn = document.getElementById("backToFolders"); // You'll need this button in HTML
+  backBtn.style.display = "block";
+  backBtn.textContent = `⬅︎`;
+
+  backBtn.addEventListener("click", () => {
+    // Hide jobs view
+    JOB_DISPLAY.innerHTML = `<div
+            id="folders-container"
+            class="grid grid-cols-3 gap-4"
+          >
+          </div>`;
+
+    backBtn.style.display = "none";
+
+    // Show folders view again and reorganize button if on "all" filter
+    displayFolders();
+  });
+};
+
 const createJobCard = (job, number) => {
   return `
       <div class="mb-3 max-w-sm mx-auto" data-job-id="${job.id}">
@@ -224,8 +383,8 @@ const createJobCard = (job, number) => {
         }">
           <div class="text-left flex-1">
             <h3 class="m-0 text-sm font-normal nanum-gothic-extrabold text-[var(--warm-brown)]">${number}. ${
-              job.role
-            } @ ${job.company}</h3>
+    job.role
+  } @ ${job.company}</h3>
           </div>
           <div class="flex items-center gap-3">
             <span class="toggle-icon text-sm text-[var(--warm-brown)] transition-transform duration-300 ease-in-out">▼</span>
@@ -283,6 +442,102 @@ const createJobCard = (job, number) => {
     `;
 };
 
+// setup claude ai api to categorize jobs
+let cachedCategories = null;
+
+// Helper: Remove job from categories
+const removeJobFromCategories = (jobId) => {
+  if (!cachedCategories) return;
+  cachedCategories.forEach((category) => {
+    category.jobIds = category.jobIds.filter((id) => id !== jobId);
+  });
+  // Remove empty categories
+  cachedCategories = cachedCategories.filter((cat) => cat.jobIds.length > 0);
+};
+
+// Helper: Add job to best matching category
+const addJobToCategory = (job) => {
+  if (!cachedCategories || cachedCategories.length === 0) {
+    // No categories yet, need full recategorization
+    return false;
+  }
+
+  // Simple matching: try to find a category with similar role name
+  const jobRole = job.role.toLowerCase();
+  let bestMatch = null;
+  let bestScore = 0;
+
+  cachedCategories.forEach((category) => {
+    const categoryName = category.name.toLowerCase();
+    // Check for keyword matches
+    const keywords = categoryName.split(/[\s/&-]+/);
+    let score = 0;
+    keywords.forEach((keyword) => {
+      if (
+        jobRole.includes(keyword) ||
+        keyword.includes(jobRole.split(" ")[0])
+      ) {
+        score++;
+      }
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = category;
+    }
+  });
+
+  // If we found any match (even weak), add to that category
+  if (bestMatch) {
+    bestMatch.jobIds.push(job.id);
+    return true;
+  }
+
+  // No match at all - create a new "Other" category or add to first category
+  // Just add to the first category to avoid re-categorization
+  if (cachedCategories.length > 0) {
+    cachedCategories[0].jobIds.push(job.id);
+    return true;
+  }
+
+  // Otherwise, need recategorization
+  return false;
+};
+
+async function autoCategorize() {
+  if (cachedCategories) {
+    displayFolders(cachedCategories, jobList);
+    return;
+  }
+
+  //loading
+  const loadingElement = document.getElementById("loading-categories");
+  if (loadingElement) {
+    loadingElement.style.display = "block";
+  }
+
+  chrome.storage.local.get(["jobs"], (result) => {
+    const jobs = result.jobs || [];
+    chrome.runtime.sendMessage(
+      { action: "categorizeJobs", jobs: jobs },
+      (response) => {
+        //
+        if (loadingElement) {
+          loadingElement.style.display = "none";
+        }
+        //end loading
+
+        if (response && response.success) {
+          cachedCategories = response.categories;
+          // Save categories to storage
+          chrome.storage.local.set({ categories: cachedCategories });
+          //   console.log("Panel: Categories received:", response.categories);
+          displayFolders(response.categories, jobs);
+        }
+      }
+    );
+  });
+}
+
 const openEditModal = (jobId) => {
   const job = jobList.find((j) => j.id === jobId);
   if (!job) return;
@@ -307,7 +562,33 @@ const openEditModal = (jobId) => {
 const updateJob = (jobId, updatedData) => {
   const index = jobList.findIndex((j) => j.id === jobId);
   if (index !== -1) {
+    const oldJob = jobList[index];
     jobList[index] = { ...jobList[index], ...updatedData };
+
+    // Only re-categorize if role changed significantly
+    // Don't re-categorize for minor edits to the same role
+    if (oldJob.role !== updatedData.role) {
+      // Check if the new role is significantly different
+      const oldRoleLower = oldJob.role.toLowerCase();
+      const newRoleLower = updatedData.role.toLowerCase();
+      const oldWords = oldRoleLower.split(/[\s/&-]+/);
+      const newWords = newRoleLower.split(/[\s/&-]+/);
+
+      // If they share at least one major word, don't re-categorize
+      const hasCommonWord = oldWords.some(
+        (word) =>
+          word.length > 3 &&
+          newWords.some((nWord) => nWord.includes(word) || word.includes(nWord))
+      );
+
+      if (!hasCommonWord) {
+        // Significantly different role, re-categorize
+        removeJobFromCategories(jobId);
+        if (!addJobToCategory(jobList[index])) {
+          cachedCategories = null; // Force recategorization
+        }
+      }
+    }
     saveJobs();
     Swal.fire({
       toast: true,
@@ -321,6 +602,15 @@ const updateJob = (jobId, updatedData) => {
     });
     // go back to the my jobs view
     jobDisplay();
+
+    // Reset to folder view and set filter to the job's status
+    JOB_DISPLAY.innerHTML = `<div
+            id="folders-container"
+            class="grid grid-cols-3 gap-4"
+          >
+          </div>`;
+    document.getElementById("backToFolders").style.display = "none";
+    setFilter(jobList[index].status);
   }
 };
 
@@ -333,9 +623,19 @@ const changeStatus = (jobId) => {
   const index = jobList.findIndex((j) => j.id === jobId);
   if (index !== -1) {
     jobList[index].status = newStatus;
+    // Status change doesn't affect categories, just save
     saveJobs();
     // automatically navigate to the filter tab matching the new status
     setFilter(newStatus);
+
+    // Reset to folder view
+    JOB_DISPLAY.innerHTML = `<div
+            id="folders-container"
+            class="grid grid-cols-3 gap-4"
+          >
+          </div>`;
+    document.getElementById("backToFolders").style.display = "none";
+    displayFolders();
   }
 };
 
@@ -359,6 +659,8 @@ const deleteJob = (jobId) => {
     },
   }).then((result) => {
     if (result.isConfirmed) {
+      // Remove from categories
+      removeJobFromCategories(jobId);
       jobList = jobList.filter((j) => j.id !== jobId);
       saveJobs();
       Swal.fire({
@@ -371,9 +673,42 @@ const deleteJob = (jobId) => {
         background: "#f3e9dc",
         color: "#5e3023",
       });
+
+      // Reset to folder view
+      JOB_DISPLAY.innerHTML = `<div
+            id="folders-container"
+            class="grid grid-cols-3 gap-4"
+          >
+          </div>`;
+      document.getElementById("backToFolders").style.display = "none";
+      displayFolders();
     }
   });
 };
+
+// Reorganize button
+const reorganizeBtn = document.getElementById("reorganizeBtn");
+reorganizeBtn.addEventListener("click", () => {
+  // Clear folders display and show loading
+  const container = document.getElementById("folders-container");
+  if (container) {
+    container.innerHTML = `
+      <div id="loading-categories" class="col-span-3 text-center py-8">
+        <div class="text-[var(--neutral-brown)] nanum-gothic-bold">
+          <div class="animate-pulse">Loading categories...</div>
+        </div>
+      </div>
+    `;
+  }
+
+  cachedCategories = null;
+  chrome.storage.local.remove("categories", () => {
+    autoCategorize();
+  });
+});
+
+// Initialize back button as hidden
+document.getElementById("backToFolders").style.display = "none";
 
 loadJobs();
 

@@ -26,7 +26,11 @@
       "128": "media/cocologo.png"
     }
   },
+  "host_permissions": [
+    "https://api.anthropic.com/*"
+  ],
   "background": {
-    "service_worker": "bg.js"
+    "service_worker": "bg.js",
+    "type": "module"
   }
 }
