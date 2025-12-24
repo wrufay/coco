@@ -24,26 +24,36 @@ Jobs:
 Return JSON with "categories" array containing objects with "name" and "jobIds" fields.
 `;
 
+// Side Panel Setup
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ windowId: tab.windowId });
 });
 
+// Message Handler
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === "extractJobInfo") {
     extractJobInfo(request.pageText)
       .then((jobInfo) => sendResponse({ success: true, jobInfo }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
-
     return true;
   }
+
   if (request.action === "categorizeJobs") {
     categorizeJobs(request.jobs)
       .then((categories) => sendResponse({ success: true, categories }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (request.action === "analyzeResume") {
+    analyzeResume(request.resumeText, request.jobs)
+      .then((analysis) => sendResponse({ success: true, analysis }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
+// Helper Functions
 const extractJSONFromResponse = (responseText) => {
   if (responseText.includes("```json")) {
     return responseText.split("```json")[1].split("```")[0].trim();
@@ -54,6 +64,7 @@ const extractJSONFromResponse = (responseText) => {
   return responseText;
 };
 
+// API Functions
 async function extractJobInfo(pageText) {
   const prompt = `Extract job information from this webpage text and return it as JSON.
 
@@ -103,7 +114,7 @@ Return ONLY the JSON object with all 6 fields.`;
   const jsonText = extractJSONFromResponse(data.content[0].text);
   const parsed = JSON.parse(jsonText);
 
-  // Ensure type field exists, try to infer from location if missing
+  // Ensure type field exists
   if (!parsed.type) {
     if (parsed.location && parsed.location.toLowerCase().includes("remote")) {
       parsed.type = "Remote";
@@ -118,7 +129,6 @@ Return ONLY the JSON object with all 6 fields.`;
     }
   }
 
-  // Ensure requirements field exists
   if (!parsed.requirements) {
     parsed.requirements = "";
   }
@@ -153,4 +163,68 @@ async function categorizeJobs(jobs) {
   const result = JSON.parse(jsonText);
 
   return result.categories;
+}
+
+async function analyzeResume(resumeText, jobs) {
+  const wishlistJobs = jobs.filter((job) => job.status === "Wishlist");
+
+  const jobsText = wishlistJobs.length > 0
+    ? wishlistJobs.map((job) => `- ${job.role} at ${job.company}\n  Requirements: ${job.notes || "Not specified"}`).join("\n\n")
+    : "No jobs in wishlist yet.";
+
+  const allJobsText = jobs.length > 0
+    ? jobs.map((job) => `- [${job.status}] ${job.role} at ${job.company}\n  Requirements: ${job.notes || "Not specified"}`).join("\n\n")
+    : "No jobs saved yet.";
+
+  const prompt = `You are a career advisor. Analyze this resume against the job listings to create a focused action plan.
+
+RESUME:
+${resumeText.substring(0, 8000)}
+
+WISHLIST JOBS:
+${jobsText}
+
+ALL JOBS:
+${allJobsText}
+
+Provide a BRIEF, ACTION-FOCUSED response with:
+
+1. TOP SKILLS TO LEARN (max 5 skills):
+   - List ONLY the most impactful skills ranked by demand
+   - Format: "<strong>Skill Name</strong> - Required by X/${wishlistJobs.length} wishlist jobs"
+   - Be specific (e.g., "React.js" not "JavaScript frameworks")
+
+2. YOUR ACTION PLAN (3-4 specific next steps):
+   - Brief, actionable items the user should do NOW
+   - Focus on high-impact actions
+   - Add a <br> tag before the "YOUR ACTION PLAN" header for spacing
+
+Keep the ENTIRE response under 150 words. Use HTML: <h3> for headers, <ul><li> for lists, <strong> for emphasis. Make it scannable and punchy.`;
+
+  const response = await fetch(CLAUDE_API_CONFIG.url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": CLAUDE_API_KEY,
+      "anthropic-version": CLAUDE_API_CONFIG.version,
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: CLAUDE_API_CONFIG.model,
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || `API error: ${response.status}`);
+  }
+
+  if (!data.content || !data.content[0]) {
+    throw new Error("Invalid response format from API");
+  }
+
+  return data.content[0].text;
 }

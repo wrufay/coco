@@ -11,7 +11,9 @@
   <body class="nanum-gothic-regular bg-[var(--light-accent)]">
     <section class="flex flex-col items-center min-h-screen pt-16 px-8">
       <!-- header thing for buttons -->
-      <button class="form-btn animate-pulse">Analyze Resume</button>
+      <button id="analyze-resume-btn" class="form-btn animate-pulse">
+        Analyze Resume
+      </button>
 
       <!-- 1. intro stuff -->
       <div id="intro" class="max-w-sm text-center mb-0">
@@ -50,6 +52,7 @@
                 placeholder="eg. RBC"
               />
             </div>
+
             <div class="flex flex-col">
               <label class="form-label" for="role-input">Role ✱</label>
               <input
@@ -61,24 +64,26 @@
               />
             </div>
           </div>
+
           <div class="flex flex-row gap-3 justify-center">
             <div class="flex flex-col">
               <label class="form-label" for="location-input">Location ✱</label>
               <input
                 class="form-input"
                 type="text"
-                id="location-input"
                 required
+                id="location-input"
                 placeholder="eg. Toronto, ON"
               />
             </div>
+
             <div class="flex flex-col">
               <label class="form-label" for="type-input">Type ✱</label>
               <input
                 class="form-input"
                 type="text"
-                id="type-input"
                 required
+                id="type-input"
                 placeholder="eg. In person"
               />
             </div>
@@ -87,24 +92,26 @@
           <div class="flex items-center gap-3">
             <label class="form-label" for="link-input">Posting ✱</label>
             <input
-              id="link-input"
-              required
               class="form-input flex-1"
               type="text"
+              required
+              id="link-input"
               placeholder="Defaults to current tab"
             />
           </div>
+
           <div class="flex items-center gap-3">
             <label class="form-label" for="deadline-input">Deadline</label>
             <input
-              id="deadline-input"
               class="form-input flex-1 hover:cursor-pointer"
               type="date"
+              id="deadline-input"
             />
           </div>
+
           <textarea
-            id="notes-textarea"
             class="form-input px-3 py-2"
+            id="notes-textarea"
             name="Notes"
             placeholder="Notes..."
             rows="8"
@@ -118,6 +125,7 @@
             >
               Cancel
             </button>
+
             <button
               type="button"
               class="form-btn bg-white animate-pulse"
@@ -125,6 +133,7 @@
             >
               Autofill
             </button>
+
             <button type="submit" class="form-btn bg-white" id="add-btn">
               Add job to wishlist
             </button>
@@ -143,30 +152,34 @@
 
         <div class="flex justify-center mb-2">
           <button
-            id="backToFolders"
             class="text-xs text-gray-500 rounded-lg mb-2 px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer"
+            id="backToFolders"
           ></button>
         </div>
+
         <div id="job-display">
           <div id="folders-container" class="grid grid-cols-3 gap-4"></div>
         </div>
+
         <div class="text-center mt-4">
           <button
-            id="reorganizeBtn"
             class="px-2 py-1 text-xs text-[var(--neutral-brown)] animate-pulse hover:underline mt-2 hover:cursor-pointer nanum-gothic-bold"
+            id="reorganizeBtn"
           >
             ↻ Reorganize
           </button>
         </div>
+
         <p
-          id="empty-state"
           class="text-gray-600 text-center fade-in-bounce-delayed"
+          id="empty-state"
         >
           No jobs yet.
         </p>
       </div>
     </section>
     <script src="pkgs/swal.js"></script>
+    <script src="pkgs/pdf.min.js"></script>
     <script src="panel.js"></script>
   </body>
 </html>

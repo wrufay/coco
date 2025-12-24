@@ -1,4 +1,5 @@
 console.clear();
+
 const TOAST_CONFIG = {
   toast: true,
   position: "top-end",
@@ -21,41 +22,46 @@ const SWAL_THEME = {
 
 const FOLDERS_CONTAINER_HTML = `<div id="folders-container" class="grid grid-cols-3 gap-4"></div>`;
 
+// DOM Elements - Form Inputs
 const form = document.querySelector("#add-job");
-const locationInput = document.getElementById("location-input");
-const typeInput = document.getElementById("type-input");
 const companyInput = document.getElementById("company-input");
 const roleInput = document.getElementById("role-input");
+const locationInput = document.getElementById("location-input");
+const typeInput = document.getElementById("type-input");
+const linkInput = document.getElementById("link-input");
 const deadlineInput = document.getElementById("deadline-input");
 const notesTextarea = document.getElementById("notes-textarea");
-const linkInput = document.getElementById("link-input");
-const submitBtn = document.getElementById("add-btn");
 
+// DOM Elements - Buttons
+const submitBtn = document.getElementById("add-btn");
 const addAppBtn = document.getElementById("add-app-btn");
 const myJobsBtn = document.getElementById("my-jobs-btn");
 const cancelBtn = document.getElementById("cancel-changes-btn");
 const autofillBtn = document.getElementById("autofill-btn");
 const backToFoldersBtn = document.getElementById("backToFolders");
 const reorganizeBtn = document.getElementById("reorganizeBtn");
+const filterBtns = document.querySelectorAll(".filter-btn");
 
+// DOM Elements - Sections
 const intro = document.getElementById("intro");
 const addSection = document.getElementById("add");
 const jobsSection = document.getElementById("jobs");
 const jobDisplay = document.getElementById("job-display");
 const emptyState = document.getElementById("empty-state");
 
-const filterBtns = document.querySelectorAll(".filter-btn");
+// State Variables
+let jobList = [];
+let currentFilter = "all";
+let cachedCategories = null;
+let editingJobId = null;
 
+// Initial UI Setup
 addSection.style.display = "none";
 jobsSection.style.display = "none";
 cancelBtn.style.display = "none";
+backToFoldersBtn.style.display = "none";
 
-cancelBtn.addEventListener("click", () => {
-  resetFormState();
-  showJobsSection();
-  setFilter("all");
-});
-
+// Navigation Functions
 const showAddSection = () => {
   jobsSection.style.display = "none";
   addSection.style.display = "block";
@@ -66,8 +72,6 @@ const showJobsSection = () => {
   addSection.style.display = "none";
 };
 
-let editingJobId = null;
-
 const resetFormState = () => {
   editingJobId = null;
   form.reset();
@@ -76,12 +80,19 @@ const resetFormState = () => {
   submitBtn.textContent = "Add job to wishlist";
 };
 
+// Navigation Event Listeners
 addAppBtn.addEventListener("click", () => {
   resetFormState();
   showAddSection();
 });
 
 myJobsBtn.addEventListener("click", () => {
+  showJobsSection();
+  setFilter("all");
+});
+
+cancelBtn.addEventListener("click", () => {
+  resetFormState();
   showJobsSection();
   setFilter("all");
 });
@@ -118,10 +129,7 @@ const addJob = (event) => {
 
 form.addEventListener("submit", addJob);
 
-let jobList = [];
-let currentFilter = "all";
-let cachedCategories = null;
-
+// Filter and Display Functions
 const resetToFolderView = () => {
   jobDisplay.innerHTML = FOLDERS_CONTAINER_HTML;
   backToFoldersBtn.style.display = "none";
@@ -144,10 +152,12 @@ filterBtns.forEach((btn) =>
   btn.addEventListener("click", () => setFilter(btn.dataset.filter))
 );
 
+// Utility Functions
 const showToast = (title, icon = "success") => {
   Swal.fire({ ...TOAST_CONFIG, icon, title });
 };
 
+// Storage Functions
 const saveJobs = () => {
   chrome.storage.local.set(
     { jobs: jobList, categories: cachedCategories },
@@ -165,24 +175,22 @@ const loadJobs = () => {
   });
 };
 
+// Job Card Event Listeners
 const attachJobCardListeners = (jobs) => {
   jobs.forEach((job) => {
     const jobHeader = document.querySelector(`[data-toggle-id="${job.id}"]`);
     const editBtn = document.querySelector(`[data-edit-id="${job.id}"]`);
     const deleteBtn = document.querySelector(`[data-delete-id="${job.id}"]`);
-    const statusDropdown = document.querySelector(
-      `[data-status-id="${job.id}"]`
-    );
+    const statusDropdown = document.querySelector(`[data-status-id="${job.id}"]`);
 
-    if (jobHeader)
-      jobHeader.addEventListener("click", () => toggleJobCard(job.id));
+    if (jobHeader) jobHeader.addEventListener("click", () => toggleJobCard(job.id));
     if (editBtn) editBtn.addEventListener("click", () => openEditModal(job.id));
     if (deleteBtn) deleteBtn.addEventListener("click", () => deleteJob(job.id));
-    if (statusDropdown)
-      statusDropdown.addEventListener("change", () => changeStatus(job.id));
+    if (statusDropdown) statusDropdown.addEventListener("change", () => changeStatus(job.id));
   });
 };
 
+// Display Functions
 const displayJobs = (jobs = jobList) => {
   if (jobs.length === 0) {
     jobDisplay.innerHTML = FOLDERS_CONTAINER_HTML;
@@ -225,10 +233,10 @@ const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
     return;
   }
 
-  const filteredJobs =
-    currentFilter === "all"
-      ? allJobs
-      : allJobs.filter((j) => j.status === currentFilter);
+  const filteredJobs = currentFilter === "all"
+    ? allJobs
+    : allJobs.filter((j) => j.status === currentFilter);
+
   const filteredRoles = roles
     .map((role) => ({
       ...role,
@@ -240,22 +248,18 @@ const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
   const hasJobs = filteredRoles.length > 0;
 
   emptyState.style.display = hasJobs ? "none" : "block";
-  reorganizeBtn.style.display =
-    hasJobs && currentFilter === "all" ? "inline-block" : "none";
+  reorganizeBtn.style.display = hasJobs && currentFilter === "all" ? "inline-block" : "none";
 
   if (!hasJobs) return;
 
   filteredRoles.forEach((role) => {
     const folderDiv = document.createElement("div");
-    folderDiv.className =
-      "folder flex flex-col text-center fade-in-bounce-delayed";
+    folderDiv.className = "folder flex flex-col text-center fade-in-bounce-delayed";
     folderDiv.innerHTML = `
       <img class="folder-img" src="/media/folder-icon.png" />
       <span class="folder-label">${role.name}</span>
     `;
-    folderDiv.addEventListener("click", () =>
-      showJobsInFolder(role, filteredJobs)
-    );
+    folderDiv.addEventListener("click", () => showJobsInFolder(role, filteredJobs));
     container.appendChild(folderDiv);
   });
 };
@@ -277,85 +281,120 @@ const showBackButton = () => {
   };
 };
 
+// Job Card Template
 const createJobCard = (job, number) => {
   return `
-      <div class="mb-5 max-w-sm mx-auto" data-job-id="${job.id}">
-        <div class="p-3 rounded-lg flex justify-between items-center cursor-pointer transition-all duration-200 bg-white/50 hover:bg-white" data-toggle-id="${
-          job.id
-        }">
-          <div class="text-left flex-1">
-            <h3 class="m-0 text-sm font-normal nanum-gothic-extrabold text-[var(--warm-brown)]">${
-              job.role
-            } @ ${job.company}</h3>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="toggle-icon text-sm text-[var(--warm-brown)] transition-transform duration-300 ease-in-out">▼</span>
-          </div>
+    <div class="mb-5 max-w-sm mx-auto" data-job-id="${job.id}">
+      <div class="p-3 rounded-lg flex justify-between items-center cursor-pointer transition-all duration-200 bg-white/50 hover:bg-white" data-toggle-id="${job.id}">
+        <div class="text-left flex-1">
+          <h3 class="m-0 text-sm font-normal nanum-gothic-extrabold text-[var(--warm-brown)]">${job.role} @ ${job.company}</h3>
         </div>
-        <div class="job-details max-h-0 overflow-hidden transition-all duration-300 ease-in-out" id="details-${
-          job.id
-        }">
+        <div class="flex items-center gap-3">
+          <span class="toggle-icon text-sm text-[var(--warm-brown)] transition-transform duration-300 ease-in-out">▼</span>
+        </div>
+      </div>
 
-          <div class="p-4 rounded-b-lg -mt-px bg-white/50 ">
+      <div class="job-details max-h-0 overflow-hidden transition-all duration-300 ease-in-out" id="details-${job.id}">
+        <div class="p-4 rounded-b-lg -mt-px bg-white/50">
+          <div class="flex justify-between">
+            <a href="${job.link}" target="_blank" class="darumadrop-one-regular my-2 text-left uppercase text-[var(--neutral-brown)] hover:underline text-sm font-bold">View job posting</a>
+            <select class="darumadrop-one-regular my-2 text-center text-[var(--tan)] text-sm focus:outline-none font-bold hover:cursor-pointer" data-status-id="${job.id}">
+              <option disabled selected>✱ ${job.status.toUpperCase()} ✱</option>
+              <option>Wishlist</option>
+              <option>Applied</option>
+              <option>Interview</option>
+              <option>Offer</option>
+            </select>
+          </div>
 
+          <p class="my-2 text-xs text-left"><strong>Location</strong><br> ${job.location} (${job.type})</p>
+          <p class="my-2 text-xs text-left"><strong>Deadline</strong><br> ${job.deadline || "None"}</p>
+          <p class="my-2 text-xs text-left"><strong>Notes</strong><br> ${job.notes ? job.notes.replace(/\n/g, "<br>") : "None"}</p>
 
-            <div class="flex justify-between">
-                <a href="${
-                  job.link
-                }" target="_blank" class="darumadrop-one-regular my-2 text-left uppercase text-[var(--neutral-brown)] hover:underline text-sm font-bold">View job posting</a>
-                    <select class="darumadrop-one-regular my-2 text-center text-[var(--tan)] text-sm focus:outline-none font-bold hover:cursor-pointer" data-status-id="${
-                      job.id
-                    }">
-                    
-                        <option disabled selected>✱ ${job.status.toUpperCase()} ✱</option>
-                        <option>Wishlist</option>
-                        <option>Applied</option>
-                        <option>Interview</option>
-                        <option>Offer</option>
-                    
-                    </select>
-                </div>
-
-            <p class="my-2 text-xs text-left"><strong>Location</strong><br> ${
-              job.location
-            } (${job.type})</p>
-            <p class="my-2 text-xs text-left"><strong>Deadline\n</strong> <br>${
-              job.deadline || "None"
-            }</p>
-            <p class="my-2 text-xs text-left"><strong>Notes\n</strong><br> ${
-              job.notes ? job.notes.replace(/\n/g, "<br>") : "None"
-            }</p>
-
-
-            
-            <div class="mt-4 flex justify-end gap-2">
-              <button class="px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50"  data-edit-id="${
-                job.id
-              }">Edit</button>
-              <button class="px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50" data-delete-id="${
-                job.id
-              }">Delete</button>
-            </div>
-
-
+          <div class="mt-4 flex justify-end gap-2">
+            <button class="px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50" data-edit-id="${job.id}">Edit</button>
+            <button class="px-3 py-1.5 border border-gray-400 rounded-lg bg-white/50 cursor-pointer transition-all duration-200 text-xs hover:bg-gray-50" data-delete-id="${job.id}">Delete</button>
           </div>
         </div>
       </div>
-    `;
+    </div>
+  `;
 };
 
+// Job Management Functions
 const removeJobFromCategories = (jobId) => {
   if (!cachedCategories) return;
-  cachedCategories.forEach(
-    (cat) => (cat.jobIds = cat.jobIds.filter((id) => id !== jobId))
-  );
+  cachedCategories.forEach((cat) => (cat.jobIds = cat.jobIds.filter((id) => id !== jobId)));
   cachedCategories = cachedCategories.filter((cat) => cat.jobIds.length > 0);
 };
 
+const openEditModal = (jobId) => {
+  const job = jobList.find((j) => j.id === jobId);
+  if (!job) return;
+
+  editingJobId = jobId;
+  companyInput.value = job.company;
+  roleInput.value = job.role;
+  typeInput.value = job.type;
+  locationInput.value = job.location;
+  deadlineInput.value = job.deadline;
+  linkInput.value = job.link;
+  notesTextarea.value = job.notes || "";
+
+  cancelBtn.style.display = "block";
+  autofillBtn.style.display = "none";
+  submitBtn.textContent = "Save Edits";
+  showAddSection();
+};
+
+const updateJob = (jobId, updatedData) => {
+  const index = jobList.findIndex((j) => j.id === jobId);
+  if (index === -1) return;
+
+  jobList[index] = { ...jobList[index], ...updatedData };
+  saveJobs();
+  showToast("Job updated!");
+  showJobsSection();
+  resetToFolderView();
+  setFilter(jobList[index].status);
+};
+
+const changeStatus = (jobId) => {
+  const index = jobList.findIndex((j) => j.id === jobId);
+  if (index === -1) return;
+
+  const newStatus = document.querySelector(`[data-job-id="${jobId}"] select`).value;
+  jobList[index].status = newStatus;
+  saveJobs();
+  resetToFolderView();
+  setFilter(newStatus);
+};
+
+const deleteJob = (jobId) => {
+  Swal.fire({
+    title: "Delete this job?",
+    text: "This action cannot be undone",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Delete",
+    cancelButtonText: "Cancel",
+    reverseButtons: true,
+    ...SWAL_THEME,
+  }).then((result) => {
+    if (result.isConfirmed) {
+      removeJobFromCategories(jobId);
+      jobList = jobList.filter((j) => j.id !== jobId);
+      saveJobs();
+      showToast("Job deleted!");
+      resetToFolderView();
+    }
+  });
+};
+
+// Loading State Management
 const setLoadingState = (isLoading) => {
   const loadingElement = document.getElementById("loading-categories");
-  if (loadingElement)
-    loadingElement.style.display = isLoading ? "block" : "none";
+  if (loadingElement) loadingElement.style.display = isLoading ? "block" : "none";
 
   const setElementState = (el) => {
     el.disabled = isLoading;
@@ -402,71 +441,7 @@ async function autoCategorize() {
   });
 }
 
-const openEditModal = (jobId) => {
-  const job = jobList.find((j) => j.id === jobId);
-  if (!job) return;
-
-  editingJobId = jobId;
-  companyInput.value = job.company;
-  roleInput.value = job.role;
-  typeInput.value = job.type;
-  locationInput.value = job.location;
-  deadlineInput.value = job.deadline;
-  linkInput.value = job.link;
-  notesTextarea.value = job.notes || "";
-
-  cancelBtn.style.display = "block";
-  autofillBtn.style.display = "none";
-  submitBtn.textContent = "Save Edits";
-  showAddSection();
-};
-
-const updateJob = (jobId, updatedData) => {
-  const index = jobList.findIndex((j) => j.id === jobId);
-  if (index === -1) return;
-
-  jobList[index] = { ...jobList[index], ...updatedData };
-  saveJobs();
-  showToast("Job updated!");
-  showJobsSection();
-  resetToFolderView();
-  setFilter(jobList[index].status);
-};
-
-const changeStatus = (jobId) => {
-  const index = jobList.findIndex((j) => j.id === jobId);
-  if (index === -1) return;
-
-  const newStatus = document.querySelector(
-    `[data-job-id="${jobId}"] select`
-  ).value;
-  jobList[index].status = newStatus;
-  saveJobs();
-  resetToFolderView();
-  setFilter(newStatus);
-};
-
-const deleteJob = (jobId) => {
-  Swal.fire({
-    title: "Delete this job?",
-    text: "This action cannot be undone",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Delete",
-    cancelButtonText: "Cancel",
-    reverseButtons: true,
-    ...SWAL_THEME,
-  }).then((result) => {
-    if (result.isConfirmed) {
-      removeJobFromCategories(jobId);
-      jobList = jobList.filter((j) => j.id !== jobId);
-      saveJobs();
-      showToast("Job deleted!");
-      resetToFolderView();
-    }
-  });
-};
-
+// Event Listeners
 reorganizeBtn.addEventListener("click", () => {
   const container = document.getElementById("folders-container");
   if (container) {
@@ -481,18 +456,15 @@ reorganizeBtn.addEventListener("click", () => {
   chrome.storage.local.remove("categories", () => autoCategorize());
 });
 
-backToFoldersBtn.style.display = "none";
-
-loadJobs();
-
+// Autofill Functionality
 const setFormLoadingState = (isLoading) => {
   const formElements = [
-    roleInput,
     companyInput,
+    roleInput,
     locationInput,
     typeInput,
-    deadlineInput,
     linkInput,
+    deadlineInput,
     notesTextarea,
     submitBtn,
     autofillBtn,
@@ -504,45 +476,28 @@ const setFormLoadingState = (isLoading) => {
     element.style.cursor = isLoading ? "not-allowed" : "";
   });
 
-  if (isLoading) {
-    autofillBtn.textContent = "Autofilling...";
-  } else {
-    autofillBtn.textContent = "Autofill";
-  }
+  autofillBtn.textContent = isLoading ? "Autofilling..." : "Autofill";
 };
 
 autofillBtn.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   // Check if the tab URL is accessible (not chrome:// or other restricted pages)
-  if (
-    !tab.url ||
-    tab.url.startsWith("chrome://") ||
-    tab.url.startsWith("chrome-extension://")
-  ) {
-    showToast(
-      "Cannot autofill from this page. Please navigate to a job posting website.",
-      "error"
-    );
+  if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
+    showToast("Cannot autofill from this page. Please navigate to a job posting website.", "error");
     return;
   }
 
   setFormLoadingState(true);
 
-  // get page content
   chrome.tabs.sendMessage(tab.id, { action: "getPageContent" }, (response) => {
-    // Check for errors
     if (chrome.runtime.lastError) {
-      showToast(
-        "Cannot access this page. Try refreshing the page first.",
-        "error"
-      );
+      showToast("Cannot access this page. Try refreshing the page first.", "error");
       setFormLoadingState(false);
       return;
     }
 
     if (response) {
-      // extract
       chrome.runtime.sendMessage(
         { action: "extractJobInfo", pageText: response.text },
         (result) => {
@@ -570,4 +525,101 @@ autofillBtn.addEventListener("click", async () => {
       );
     }
   });
+});
+
+// Resume Analysis Functionality
+const analyzeResumeBtn = document.getElementById("analyze-resume-btn");
+pdfjsLib.GlobalWorkerOptions.workerSrc = "pkgs/pdf.worker.min.js";
+
+async function extractTextFromPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item) => item.str).join(" ");
+    fullText += pageText + "\n";
+  }
+
+  return fullText;
+}
+
+analyzeResumeBtn.addEventListener("click", async () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/pdf";
+
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      showToast("Please upload a PDF file", "error");
+      return;
+    }
+
+    Swal.fire({
+      title: "Analyzing...",
+      html: "Reading your resume and matching it against your wishlist jobs",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      ...SWAL_THEME,
+    });
+
+    try {
+      const resumeText = await extractTextFromPDF(file);
+
+      chrome.runtime.sendMessage(
+        { action: "analyzeResume", resumeText, jobs: jobList },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("Chrome runtime error:", chrome.runtime.lastError);
+            Swal.fire({
+              title: "Error",
+              text: chrome.runtime.lastError.message || "Failed to analyze resume",
+              icon: "error",
+              ...SWAL_THEME,
+            });
+            return;
+          }
+
+          if (response && response.success) {
+            const formattedAnalysis = response.analysis.replace(/<h3>YOUR ACTION PLAN/i, "<br><h3>YOUR ACTION PLAN");
+            Swal.fire({
+              title: "Your Priority Skills",
+              html: `<div style="text-align: left; font-size: 14px; line-height: 1.6;">${formattedAnalysis}</div>`,
+              icon: "success",
+              confirmButtonText: "Got it!",
+              width: "550px",
+              ...SWAL_THEME,
+              customClass: {
+                title: "darumadrop-one-regular",
+                htmlContainer: "nanum-gothic-regular",
+              },
+            });
+          } else {
+            console.error("Analysis failed:", response);
+            Swal.fire({
+              title: "Error",
+              text: response?.error || "Failed to analyze resume. Check console for details.",
+              icon: "error",
+              ...SWAL_THEME,
+            });
+          }
+        }
+      );
+    } catch (error) {
+      console.error("PDF extraction error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to read PDF file: " + error.message,
+        icon: "error",
+        ...SWAL_THEME,
+      });
+    }
+  };
+
+  input.click();
 });
