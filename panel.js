@@ -1,5 +1,4 @@
 console.clear();
-
 const TOAST_CONFIG = {
   toast: true,
   position: "top-end",
@@ -22,8 +21,6 @@ const SWAL_THEME = {
 
 const FOLDERS_CONTAINER_HTML = `<div id="folders-container" class="grid grid-cols-3 gap-4"></div>`;
 
-const STATUS_OPTIONS = ["Wishlist", "Applied", "Interview", "Offer"];
-
 const form = document.querySelector("#add-job");
 const locationInput = document.getElementById("location-input");
 const typeInput = document.getElementById("type-input");
@@ -37,6 +34,7 @@ const submitBtn = document.getElementById("add-btn");
 const addAppBtn = document.getElementById("add-app-btn");
 const myJobsBtn = document.getElementById("my-jobs-btn");
 const cancelBtn = document.getElementById("cancel-changes-btn");
+const autofillBtn = document.getElementById("autofill-btn");
 const backToFoldersBtn = document.getElementById("backToFolders");
 const reorganizeBtn = document.getElementById("reorganizeBtn");
 
@@ -55,6 +53,7 @@ cancelBtn.style.display = "none";
 cancelBtn.addEventListener("click", () => {
   resetFormState();
   showJobsSection();
+  setFilter("all");
 });
 
 const showAddSection = () => {
@@ -73,17 +72,19 @@ const resetFormState = () => {
   editingJobId = null;
   form.reset();
   cancelBtn.style.display = "none";
+  autofillBtn.style.display = "block";
   submitBtn.textContent = "Add job to wishlist";
 };
 
 addAppBtn.addEventListener("click", () => {
   resetFormState();
   showAddSection();
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    linkInput.value = tabs[0].url;
-  });
 });
-myJobsBtn.addEventListener("click", showJobsSection);
+
+myJobsBtn.addEventListener("click", () => {
+  showJobsSection();
+  setFilter("all");
+});
 
 const addJob = (event) => {
   event.preventDefault();
@@ -104,14 +105,15 @@ const addJob = (event) => {
   } else {
     const newJob = { id: Date.now(), ...jobData };
     jobList.push(newJob);
-    if (!addJobToCategory(newJob)) cachedCategories = null;
-    saveJobs();
+    cachedCategories = null; // Clear categories to force recategorization
     showToast("Job added successfully!");
-    showJobsSection();
-    setFilter("Wishlist");
+    saveJobs(); // This will trigger autoCategorize in the background
+    form.reset(); // Clear the form for next job
   }
 
-  resetFormState();
+  if (editingJobId) {
+    resetFormState();
+  }
 };
 
 form.addEventListener("submit", addJob);
@@ -147,9 +149,12 @@ const showToast = (title, icon = "success") => {
 };
 
 const saveJobs = () => {
-  chrome.storage.local.set({ jobs: jobList, categories: cachedCategories }, () => {
-    cachedCategories ? displayFolders() : autoCategorize();
-  });
+  chrome.storage.local.set(
+    { jobs: jobList, categories: cachedCategories },
+    () => {
+      cachedCategories ? displayFolders() : autoCategorize();
+    }
+  );
 };
 
 const loadJobs = () => {
@@ -169,7 +174,8 @@ const attachJobCardListeners = (jobs) => {
       `[data-status-id="${job.id}"]`
     );
 
-    if (jobHeader) jobHeader.addEventListener("click", () => toggleJobCard(job.id));
+    if (jobHeader)
+      jobHeader.addEventListener("click", () => toggleJobCard(job.id));
     if (editBtn) editBtn.addEventListener("click", () => openEditModal(job.id));
     if (deleteBtn) deleteBtn.addEventListener("click", () => deleteJob(job.id));
     if (statusDropdown)
@@ -188,7 +194,9 @@ const displayJobs = (jobs = jobList) => {
   emptyState.style.display = "none";
   reorganizeBtn.style.display = "inline-block";
 
-  jobDisplay.innerHTML = jobs.map((j, index) => createJobCard(j, index + 1)).join("");
+  jobDisplay.innerHTML = jobs
+    .map((j, index) => createJobCard(j, index + 1))
+    .join("");
 
   const cards = jobDisplay.querySelectorAll("[data-job-id]");
   cards.forEach((card) => card.classList.add("fade-in-bounce-delayed"));
@@ -217,7 +225,10 @@ const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
     return;
   }
 
-  const filteredJobs = currentFilter === "all" ? allJobs : allJobs.filter((j) => j.status === currentFilter);
+  const filteredJobs =
+    currentFilter === "all"
+      ? allJobs
+      : allJobs.filter((j) => j.status === currentFilter);
   const filteredRoles = roles
     .map((role) => ({
       ...role,
@@ -229,18 +240,22 @@ const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
   const hasJobs = filteredRoles.length > 0;
 
   emptyState.style.display = hasJobs ? "none" : "block";
-  reorganizeBtn.style.display = hasJobs && currentFilter === "all" ? "inline-block" : "none";
+  reorganizeBtn.style.display =
+    hasJobs && currentFilter === "all" ? "inline-block" : "none";
 
   if (!hasJobs) return;
 
   filteredRoles.forEach((role) => {
     const folderDiv = document.createElement("div");
-    folderDiv.className = "folder flex flex-col text-center fade-in-bounce-delayed";
+    folderDiv.className =
+      "folder flex flex-col text-center fade-in-bounce-delayed";
     folderDiv.innerHTML = `
       <img class="folder-img" src="/media/folder-icon.png" />
       <span class="folder-label">${role.name}</span>
     `;
-    folderDiv.addEventListener("click", () => showJobsInFolder(role, filteredJobs));
+    folderDiv.addEventListener("click", () =>
+      showJobsInFolder(role, filteredJobs)
+    );
     container.appendChild(folderDiv);
   });
 };
@@ -331,43 +346,16 @@ const createJobCard = (job, number) => {
 
 const removeJobFromCategories = (jobId) => {
   if (!cachedCategories) return;
-  cachedCategories.forEach((cat) => cat.jobIds = cat.jobIds.filter((id) => id !== jobId));
+  cachedCategories.forEach(
+    (cat) => (cat.jobIds = cat.jobIds.filter((id) => id !== jobId))
+  );
   cachedCategories = cachedCategories.filter((cat) => cat.jobIds.length > 0);
-};
-
-const findBestMatchingCategory = (job) => {
-  const jobRole = job.role.toLowerCase();
-  let bestMatch = null;
-  let bestScore = 0;
-
-  cachedCategories.forEach((category) => {
-    const keywords = category.name.toLowerCase().split(/[\s/&-]+/);
-    let score = 0;
-    keywords.forEach((keyword) => {
-      if (jobRole.includes(keyword) || keyword.includes(jobRole.split(" ")[0])) {
-        score++;
-      }
-    });
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = category;
-    }
-  });
-
-  return bestMatch;
-};
-
-const addJobToCategory = (job) => {
-  if (!cachedCategories || cachedCategories.length === 0) return false;
-
-  const bestMatch = findBestMatchingCategory(job);
-  (bestMatch || cachedCategories[0]).jobIds.push(job.id);
-  return true;
 };
 
 const setLoadingState = (isLoading) => {
   const loadingElement = document.getElementById("loading-categories");
-  if (loadingElement) loadingElement.style.display = isLoading ? "block" : "none";
+  if (loadingElement)
+    loadingElement.style.display = isLoading ? "block" : "none";
 
   const setElementState = (el) => {
     el.disabled = isLoading;
@@ -383,6 +371,16 @@ async function autoCategorize() {
   if (cachedCategories) {
     displayFolders(cachedCategories, jobList);
     return;
+  }
+
+  // Show loading spinner in the folders container
+  const container = document.getElementById("folders-container");
+  if (container) {
+    container.innerHTML = `
+      <div id="loading-categories" class="col-span-3 text-center py-8">
+        <div class="inline-block w-8 h-8 border-4 border-[var(--neutral-brown)] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    `;
   }
 
   setLoadingState(true);
@@ -418,6 +416,7 @@ const openEditModal = (jobId) => {
   notesTextarea.value = job.notes || "";
 
   cancelBtn.style.display = "block";
+  autofillBtn.style.display = "none";
   submitBtn.textContent = "Save Edits";
   showAddSection();
 };
@@ -438,7 +437,9 @@ const changeStatus = (jobId) => {
   const index = jobList.findIndex((j) => j.id === jobId);
   if (index === -1) return;
 
-  const newStatus = document.querySelector(`[data-job-id="${jobId}"] select`).value;
+  const newStatus = document.querySelector(
+    `[data-job-id="${jobId}"] select`
+  ).value;
   jobList[index].status = newStatus;
   saveJobs();
   resetToFolderView();
@@ -483,3 +484,90 @@ reorganizeBtn.addEventListener("click", () => {
 backToFoldersBtn.style.display = "none";
 
 loadJobs();
+
+const setFormLoadingState = (isLoading) => {
+  const formElements = [
+    roleInput,
+    companyInput,
+    locationInput,
+    typeInput,
+    deadlineInput,
+    linkInput,
+    notesTextarea,
+    submitBtn,
+    autofillBtn,
+  ];
+
+  formElements.forEach((element) => {
+    element.disabled = isLoading;
+    element.style.opacity = isLoading ? "0.5" : "1";
+    element.style.cursor = isLoading ? "not-allowed" : "";
+  });
+
+  if (isLoading) {
+    autofillBtn.textContent = "Autofilling...";
+  } else {
+    autofillBtn.textContent = "Autofill";
+  }
+};
+
+autofillBtn.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+  // Check if the tab URL is accessible (not chrome:// or other restricted pages)
+  if (
+    !tab.url ||
+    tab.url.startsWith("chrome://") ||
+    tab.url.startsWith("chrome-extension://")
+  ) {
+    showToast(
+      "Cannot autofill from this page. Please navigate to a job posting website.",
+      "error"
+    );
+    return;
+  }
+
+  setFormLoadingState(true);
+
+  // get page content
+  chrome.tabs.sendMessage(tab.id, { action: "getPageContent" }, (response) => {
+    // Check for errors
+    if (chrome.runtime.lastError) {
+      showToast(
+        "Cannot access this page. Try refreshing the page first.",
+        "error"
+      );
+      setFormLoadingState(false);
+      return;
+    }
+
+    if (response) {
+      // extract
+      chrome.runtime.sendMessage(
+        { action: "extractJobInfo", pageText: response.text },
+        (result) => {
+          if (chrome.runtime.lastError) {
+            showToast("Error extracting job info", "error");
+            setFormLoadingState(false);
+            return;
+          }
+
+          if (result && result.success) {
+            roleInput.value = result.jobInfo.title || "";
+            companyInput.value = result.jobInfo.company || "";
+            locationInput.value = result.jobInfo.location || "";
+            typeInput.value = result.jobInfo.type || "";
+            deadlineInput.value = result.jobInfo.deadline || "";
+            linkInput.value = response.url;
+            notesTextarea.value = result.jobInfo.requirements || "";
+            setFormLoadingState(false);
+            showToast("Form autofilled!", "success");
+          } else {
+            showToast("Could not extract job information", "error");
+            setFormLoadingState(false);
+          }
+        }
+      );
+    }
+  });
+});

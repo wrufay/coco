@@ -39,37 +39,92 @@
           <div class="flex flex-row gap-3 justify-center">
             <div class="flex flex-col">
               <label class="form-label" for="company-input">Company ✱</label>
-              <input class="form-input" type="text" required id="company-input" placeholder="eg. RBC" />
+              <input
+                class="form-input"
+                type="text"
+                required
+                id="company-input"
+                placeholder="eg. RBC"
+              />
             </div>
             <div class="flex flex-col">
               <label class="form-label" for="role-input">Role ✱</label>
-              <input class="form-input" type="text" required id="role-input" placeholder="eg. Software Developer Intern" />
+              <input
+                class="form-input"
+                type="text"
+                required
+                id="role-input"
+                placeholder="eg. Software Developer Intern"
+              />
             </div>
           </div>
           <div class="flex flex-row gap-3 justify-center">
             <div class="flex flex-col">
               <label class="form-label" for="location-input">Location ✱</label>
-              <input class="form-input" type="text" id="location-input" required placeholder="eg. Toronto, ON" />
+              <input
+                class="form-input"
+                type="text"
+                id="location-input"
+                required
+                placeholder="eg. Toronto, ON"
+              />
             </div>
             <div class="flex flex-col">
               <label class="form-label" for="type-input">Type ✱</label>
-              <input class="form-input" type="text" id="type-input" required placeholder="eg. In person" />
+              <input
+                class="form-input"
+                type="text"
+                id="type-input"
+                required
+                placeholder="eg. In person"
+              />
             </div>
           </div>
 
           <div class="flex items-center gap-3">
             <label class="form-label" for="link-input">Posting ✱</label>
-            <input id="link-input" required class="form-input flex-1" type="text" placeholder="Defaults to current tab" />
+            <input
+              id="link-input"
+              required
+              class="form-input flex-1"
+              type="text"
+              placeholder="Defaults to current tab"
+            />
           </div>
           <div class="flex items-center gap-3">
             <label class="form-label" for="deadline-input">Deadline</label>
-            <input id="deadline-input" class="form-input flex-1 hover:cursor-pointer" type="date" />
+            <input
+              id="deadline-input"
+              class="form-input flex-1 hover:cursor-pointer"
+              type="date"
+            />
           </div>
-          <textarea id="notes-textarea" class="form-input px-3 py-2" name="Notes" placeholder="Notes..."></textarea>
+          <textarea
+            id="notes-textarea"
+            class="form-input px-3 py-2"
+            name="Notes"
+            placeholder="Notes..."
+            rows="8"
+          ></textarea>
 
           <div class="flex justify-center gap-3 w-full">
-            <button type="button" class="form-btn bg-white/50 hover:bg-white" id="cancel-changes-btn">Cancel</button>
-            <button type="submit" class="form-btn bg-white" id="add-btn">Add job to wishlist</button>
+            <button
+              type="button"
+              class="form-btn bg-white/50 hover:bg-white"
+              id="cancel-changes-btn"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="form-btn bg-white animate-pulse"
+              id="autofill-btn"
+            >
+              Autofill
+            </button>
+            <button type="submit" class="form-btn bg-white" id="add-btn">
+              Add job to wishlist
+            </button>
           </div>
         </form>
       </div>
@@ -84,15 +139,28 @@
         </nav>
 
         <div class="flex justify-center mb-2">
-          <button id="backToFolders" class="text-xs text-gray-500 rounded-lg mb-2 px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer"></button>
+          <button
+            id="backToFolders"
+            class="text-xs text-gray-500 rounded-lg mb-2 px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer"
+          ></button>
         </div>
         <div id="job-display">
           <div id="folders-container" class="grid grid-cols-3 gap-4"></div>
         </div>
         <div class="text-center mt-4">
-          <button id="reorganizeBtn" class="px-2 py-1 text-xs text-[var(--neutral-brown)] hover:underline mt-2 hover:cursor-pointer nanum-gothic-bold">↻ Reorganize</button>
+          <button
+            id="reorganizeBtn"
+            class="px-2 py-1 text-xs text-[var(--neutral-brown)] animate-pulse hover:underline mt-2 hover:cursor-pointer nanum-gothic-bold"
+          >
+            ↻ Reorganize
+          </button>
         </div>
-        <p id="empty-state" class="text-gray-600 text-center fade-in-bounce-delayed">No jobs yet.</p>
+        <p
+          id="empty-state"
+          class="text-gray-600 text-center fade-in-bounce-delayed"
+        >
+          No jobs yet.
+        </p>
       </div>
     </section>
     <script src="pkgs/swal.js"></script>
