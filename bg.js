@@ -168,13 +168,29 @@ async function categorizeJobs(jobs) {
 async function analyzeResume(resumeText, jobs) {
   const wishlistJobs = jobs.filter((job) => job.status === "Wishlist");
 
-  const jobsText = wishlistJobs.length > 0
-    ? wishlistJobs.map((job) => `- ${job.role} at ${job.company}\n  Requirements: ${job.notes || "Not specified"}`).join("\n\n")
-    : "No jobs in wishlist yet.";
+  const jobsText =
+    wishlistJobs.length > 0
+      ? wishlistJobs
+          .map(
+            (job) =>
+              `- ${job.role} at ${job.company}\n  Requirements: ${
+                job.notes || "Not specified"
+              }`
+          )
+          .join("\n\n")
+      : "No jobs in wishlist yet.";
 
-  const allJobsText = jobs.length > 0
-    ? jobs.map((job) => `- [${job.status}] ${job.role} at ${job.company}\n  Requirements: ${job.notes || "Not specified"}`).join("\n\n")
-    : "No jobs saved yet.";
+  const allJobsText =
+    jobs.length > 0
+      ? jobs
+          .map(
+            (job) =>
+              `- [${job.status}] ${job.role} at ${
+                job.company
+              }\n  Requirements: ${job.notes || "Not specified"}`
+          )
+          .join("\n\n")
+      : "No jobs saved yet.";
 
   const prompt = `You are a career advisor. Analyze this resume against the job listings to create a focused action plan.
 
@@ -191,13 +207,18 @@ Provide a BRIEF, ACTION-FOCUSED response with:
 
 1. TOP SKILLS TO LEARN (max 5 skills):
    - List ONLY the most impactful skills ranked by demand
-   - Format: "<strong>Skill Name</strong> - Required by X/${wishlistJobs.length} wishlist jobs"
+   - Separate bullets using "✱" symbol
+   - Format: "<strong>Skill Name</strong> - Required by X/${
+     wishlistJobs.length
+   } wishlist jobs"
    - Be specific (e.g., "React.js" not "JavaScript frameworks")
 
 2. YOUR ACTION PLAN (3-4 specific next steps):
    - Brief, actionable items the user should do NOW
    - Focus on high-impact actions
    - Add a <br> tag before the "YOUR ACTION PLAN" header for spacing
+
+   Keep the response conversational, include cute emojis such as ˚⟡˖, 🧸, ☻, and ♡
 
 Keep the ENTIRE response under 150 words. Use HTML: <h3> for headers, <ul><li> for lists, <strong> for emphasis. Make it scannable and punchy.`;
 
