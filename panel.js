@@ -623,3 +623,5 @@ analyzeResumeBtn.addEventListener("click", async () => {
 
   input.click();
 });
+
+loadJobs();
