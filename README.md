@@ -1,32 +1,26 @@
-### why spend valuable time and energy keeping track of 100+ job applications when you can let Coco do it for you?
+i couldn’t sleep during the power outage last week so i made an aesthetic “notion for jobs”. one chrome extension - and you’ll never stress over about job applications again! 🧸
 
-**about**
+### introducing coco, your personal co-op coordinator: an ai agent that helps you track, organize and plan.
 
-- co-op search is daunting. with everyone rushing to grab the top tech jobs, you fear you won’t even land a single interview. after all, with the new term starting, a whole new course load, a half empty resume and no job experience, how can you have time to keep track of all your applications?
-- answer - you don’t! no more switching from linkedin to waterlooworks to indeed, looking through your saved jobs just to realized you missed the deadline for half of them.
-- now you have your own co-op coordinator, coco - an ai agent that allows you to spend your time on more important things, and never stress out over losing track of an application or missing a deadline again.
+**user flow:**
 
-**mvp features:**
+- find a job you like? navigate to that page - and save everything you need from it in one click. let coco autofill the necessary information - or choose to manually input it yourself.
+- coco automatically gives your jobs relevant categories and organizes them into folders, making the list easy to navigate. click on the “my jobs” view: you’ll see all your folders separated by status and within them, the full job description with functional CRUD operations.
+- now with all your jobs stored and organized for use whenever - what should you work on to get you there? that’s when you use coco’s resume analyzer feature. simply upload a pdf of your resume and receive an immediate plan of action based on your resume + job wishlist.
 
-- be able to add a new job by manually inputting the company, title, location, deadline, status and additional notes such as requirements or interview prep info.
-- all titles and companies of jobs you add will then be displayed through a collapsable text, which you can then categorize into “want to apply”, “applied”, “interview”, and “offer”.
-- be able to edit each of the job inputs, applying basic create, read, update, delete operations
+**features:**
 
-**additional features:**
+- clean ui/ux with smooth animations and stress-alleviating design
+- essential CRUD operations + 3 basic ai additions to reduce time, effort and friction
+- seamless user workflow and functional navigation through tabs.
 
-- dark mode / light mode
-- coco ai chat (anthropic claude api - tailored to students)
-- autofill job information based on tab link (saving you time)
-- ask coco ai chat for actions to take based on your resume / current jobs in your wishlist (eg. focus on DSA if half of your jobs require or suggest to know that)
-- help you make a schedule / timeline based on deadlines
-- organize long list of jobs by role, company, deadline etc
+**tech stack:**
 
-**tech stack & skills**
+- built with html, tailwind css, and javascript + sweetalert.
+- data stored and collected in the extension using the chrome api
+- ai features powered by claude ♡
 
-- html, tailwind css and javascript, keeping it simple with a priority on solid usability and clean ui/ux
-- chrome storage API to store data in the chrome extension, claude anthropic ai API for ai chat
-
-**installation instructions:**
+**how to use:**
 
 1. clone this repo
 2. go to chrome://extensions/
@@ -34,8 +28,12 @@
 4. click "load unpacked" and upload the coco folder
 5. pin the extension, and use it!
 
-### media
+**ups and downs:**
 
-![demo1](media/demo1.png)
+- my favourite part was designing the ui/ux. my goal was to keep it as minimal as possible, easy on the eyes and also stress-reducing in a way. also loved not having to deal with multiple breakpoints - pros of chrome extensions!
+- implementing the basic saving functions and CRUD operations with chrome api was straightforward - but figuring how to implement claude ai inside the extension was not ☹︎. the first thing was deciding WHAT to do with ai, so i spent a couple days actually using the most basic version to try and track jobs, and noticed that autofill, auto-categorize and resume analyzer were the three i wanted to focus on. very good to help me learn api integration!
+- i hope to deploy this on the chrome store for all to use! what drove me to make this extension was feeling like applying to jobs was 1. stressful 2. all over the place. of course i could use a spreadsheet, or notion (including their chrome extension). but i also wanted there to be an extra aspect of simplicity and aesthetics, that would not only reduce friction when searching for and applying to jobs but creating a positive vibe that i just felt like i needed tbh
 
-![demo3](media/demo3.png)
+**thanks!**
+
+i encourage you to try it out, and give me feedback! you can contact me at f26wu[at]uwaterloo[dot]ca ♡ thanks for stopping by and checking out coco, have a great day :)
