@@ -8,12 +8,12 @@ const TOAST_CONFIG = {
   timer: 2000,
   timerProgressBar: true,
   background: "#f3e9dc",
-  color: "#5e3023",
+  color: "#895737",
 };
 
 const SWAL_THEME = {
   background: "#f3e9dc",
-  color: "#5e3023",
+  color: "#895737",
   iconColor: "#c08552",
   confirmButtonColor: "#c08552",
   cancelButtonColor: "#dab49d",
@@ -76,7 +76,7 @@ const resetFormState = () => {
   form.reset();
   cancelBtn.style.display = "none";
   autofillBtn.style.display = "block";
-  submitBtn.textContent = "Add job to wishlist";
+  submitBtn.textContent = "Add Job to Wishlist";
 };
 
 addAppBtn.addEventListener("click", () => {
@@ -117,7 +117,7 @@ const addJob = (e) => {
     const newJob = { id: Date.now(), ...jobData };
     jobList.push(newJob);
     cachedCategories = null;
-    showToast("Job added successfully!");
+    showToast("Job Added Successfully!");
     saveJobs(); // uses autoCategorize
     form.reset(); // clean flow!
   }
@@ -228,8 +228,19 @@ const toggleJobCard = (jobId) => {
 
 const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
   const container = document.getElementById("folders-container");
-  if (!container || !roles || roles.length === 0) {
-    if (container) container.innerHTML = "";
+  if (!container) return;
+
+  // Show loading spinner if categories are being generated
+  if (!roles || roles.length === 0) {
+    if (jobList.length > 0 && !cachedCategories) {
+      container.innerHTML = `
+        <div id="loading-categories" class="col-span-3 text-center py-8">
+          <div class="inline-block w-8 h-8 border-4 border-[var(--neutral-brown)] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      `;
+      return;
+    }
+    container.innerHTML = "";
     return;
   }
 
@@ -382,7 +393,7 @@ const updateJob = (jobId, updatedData) => {
 
   jobList[index] = { ...jobList[index], ...updatedData };
   saveJobs();
-  showToast("successfully updated!");
+  showToast("Successfully Updated! ˚⟡˖");
   showJobsSection();
   resetToFolderView();
   setFilter(jobList[index].status);
@@ -403,8 +414,7 @@ const changeStatus = (jobId) => {
 
 const deleteJob = (jobId) => {
   Swal.fire({
-    title: "are you sure you want to delete? ˚⟡˖",
-    text: "this action cannot be undone.",
+    title: "Are you sure you want to delete?",
     icon: "warning",
     showCancelButton: true,
     confirmButtonText: "Delete",
@@ -416,7 +426,7 @@ const deleteJob = (jobId) => {
       removeJobFromCategories(jobId);
       jobList = jobList.filter((j) => j.id !== jobId);
       saveJobs();
-      showToast("successfully deleted!");
+      showToast("Successfully Deleted!");
       resetToFolderView();
     }
   });
@@ -521,7 +531,7 @@ autofillBtn.addEventListener("click", async () => {
     tab.url.startsWith("chrome-extension://")
   ) {
     showToast(
-      "sorry, coco cannot autofill from this page. please navigate to a job posting website! ˚⟡˖ ࣪",
+      "Sorry, Coco cannot autofill from this page. Please navigate to a job posting website! ˚⟡˖ ࣪",
       "error"
     );
     return;
@@ -532,7 +542,7 @@ autofillBtn.addEventListener("click", async () => {
   chrome.tabs.sendMessage(tab.id, { action: "getPageContent" }, (response) => {
     if (chrome.runtime.lastError) {
       showToast(
-        "sorry, coco cannot access this page. try refreshing first! ˚⟡˖",
+        "Sorry, Coco cannot access this page. Try refreshing first! ˚⟡˖",
         "error"
       );
       setFormLoadingState(false);
@@ -544,7 +554,7 @@ autofillBtn.addEventListener("click", async () => {
         { action: "extractJobInfo", pageText: response.text },
         (result) => {
           if (chrome.runtime.lastError) {
-            showToast("Error extracting job info", "error");
+            showToast("Could not extract job info", "error");
             setFormLoadingState(false);
             return;
           }
@@ -558,10 +568,10 @@ autofillBtn.addEventListener("click", async () => {
             linkInput.value = response.url;
             notesTextarea.value = result.jobInfo.requirements || "";
             setFormLoadingState(false);
-            showToast("done! ˚⟡˖", "success");
+            showToast("Done! ˚⟡˖", "success");
           } else {
             showToast(
-              "sorry, coco could not extract the job information. ˚⟡˖",
+              "Sorry, Coco could not extract the job information.",
               "error"
             );
             setFormLoadingState(false);
@@ -601,14 +611,14 @@ analyzeResumeBtn.addEventListener("click", async () => {
     if (!file) return;
 
     if (file.type !== "application/pdf") {
-      showToast("please upload a valid file, coco needs a pdf ˚⟡˖", "error");
+      showToast("Please upload a valid file, Coco needs a pdf ˚⟡˖", "error");
       return;
     }
 
     Swal.fire({
       // want to add an animation to this !!
-      title: "coco is working...˚⟡˖",
-      html: "currently reading your resume and matching against jobs in your wishlist.",
+      title: "Coco is analyzing...˚⟡˖",
+      html: "Reading your resume and matching it against jobs in your wishlist.",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
       ...SWAL_THEME,
@@ -625,7 +635,7 @@ analyzeResumeBtn.addEventListener("click", async () => {
               title: "Error",
               text:
                 chrome.runtime.lastError.message ||
-                "sorry, coco could not analyze your resume ˚⟡˖",
+                "Sorry, Coco could not analyze your resume.",
               icon: "error",
               ...SWAL_THEME,
             });
@@ -657,7 +667,7 @@ analyzeResumeBtn.addEventListener("click", async () => {
               title: "Error",
               text:
                 response?.error ||
-                "sorry, your resume analysis failed. check the console for details ˚⟡˖",
+                "Sorry, your resume analysis failed. Check the console for details",
               icon: "error",
               ...SWAL_THEME,
             });
@@ -667,7 +677,7 @@ analyzeResumeBtn.addEventListener("click", async () => {
     } catch (error) {
       Swal.fire({
         title: "Error",
-        text: "oops! failed to read pdf file:" + error.message,
+        text: "Oops! Failed to read pdf file:" + error.message,
         icon: "error",
         ...SWAL_THEME,
       });
@@ -682,3 +692,6 @@ loadJobs();
 // todo.
 //- reformulate prompts to be more coco-like
 //- add feedback button
+//- add count to number of jobs (inside "all", at least)
+//- futher filter by location etc. (more semantic... and custom)
+//- hover over ai features✔︎✔︎ (tooltip)

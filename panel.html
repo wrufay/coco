@@ -11,8 +11,12 @@
   <body class="nanum-gothic-regular bg-[var(--light-accent)]">
     <section class="flex flex-col items-center min-h-screen pt-16 px-8">
       <!-- header thing for buttons -->
-      <button id="analyze-resume-btn" class="form-btn animate-pulse">
-        Analyze Resume
+      <button
+        id="analyze-resume-btn"
+        class="form-btn animate-pulse tooltip"
+        data-tooltip="need guidance or an action plan?"
+      >
+        Analyze Resume ˚⟡˖
       </button>
 
       <!-- 1. intro stuff -->
@@ -28,8 +32,8 @@
           Welcome to Coco!
         </h1>
         <h2 class="nanum-gothic-bold text-[var(--warm-brown)] text-xs">
-          Your personal CO(-op) CO(ordinator), helping you organize applications
-          for the co-op term.
+          Your personal <strong>co</strong>-op <strong>co</strong>ordinator,
+          powered by Claude. Plan, organize, and track - all in one place.
         </h2>
 
         <nav class="p-4 flex justify-center gap-3">
@@ -128,8 +132,9 @@
 
             <button
               type="button"
-              class="form-btn bg-white animate-pulse"
+              class="form-btn bg-white animate-pulse tooltip"
               id="autofill-btn"
+              data-tooltip="open a page, let coco do the work!"
             >
               Autofill
             </button>
@@ -143,7 +148,13 @@
 
       <div id="jobs" class="fade-in-bounce-delayed mt-6">
         <nav class="p-4 flex justify-center gap-5">
-          <button class="filter-btn underline" data-filter="all">All</button>
+          <button
+            class="filter-btn underline"
+            data-filter="all"
+            id="all-filter-btn"
+          >
+            All
+          </button>
           <button class="filter-btn" data-filter="Wishlist">Wishlist</button>
           <button class="filter-btn" data-filter="Applied">Applied</button>
           <button class="filter-btn" data-filter="Interview">Interview</button>
@@ -152,7 +163,7 @@
 
         <div class="flex justify-center mb-2">
           <button
-            class="text-xs text-gray-500 rounded-lg mb-2 px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer"
+            class="text-xs text-gray-500 rounded-lg mb-2 px-2 py-1 uppercase nanum-gothic-extrabold hover:cursor-pointer tooltip"
             id="backToFolders"
           ></button>
         </div>
@@ -163,10 +174,11 @@
 
         <div class="text-center mt-4">
           <button
-            class="px-2 py-1 text-xs text-[var(--neutral-brown)] animate-pulse hover:underline mt-2 hover:cursor-pointer nanum-gothic-bold"
+            class="px-2 py-1 text-xs text-[var(--neutral-brown)] animate-pulse hover:underline mt-2 hover:cursor-pointer nanum-gothic-bold tooltip"
             id="reorganizeBtn"
+            data-tooltip="re-categorize your jobs based on roles"
           >
-            ↻ Reorganize
+            ↻ Reorganize ˚⟡˖
           </button>
         </div>
 
@@ -174,10 +186,23 @@
           class="text-gray-600 text-center fade-in-bounce-delayed"
           id="empty-state"
         >
-          No jobs yet.
+          Nothing here yet. ˚⟡˖
         </p>
       </div>
     </section>
+    <footer
+      class="fixed bottom-2 left-0 right-0 text-center py-2 text-gray-500"
+      style="font-size: 0.67rem"
+    >
+      made by
+      <a
+        href="https://github.com/wrufay/coco"
+        class="hover:underline"
+        target="_blank"
+        >fay wu</a
+      >
+    </footer>
+
     <script src="pkgs/swal.js"></script>
     <script src="pkgs/pdf.min.js"></script>
     <script src="panel.js"></script>
