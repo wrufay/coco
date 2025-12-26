@@ -5,7 +5,9 @@ I couldn't sleep during the power outage last week so I made "Notion for jobs"
 **User flow:**
 
 - Find a job you like? Navigate to that page - and save everything you need from it in one click. Let Coco autofill the necessary information - or choose to manually input it yourself.
+
 - Coco automatically gives your jobs relevant categories and organizes them into folders, making the list easy to navigate. Click on the "My Jobs" view: you'll see all your folders separated by status and within them, the full job description with functional CRUD operations.
+
 - Now with all your jobs stored and organized for use whenever - what should you work on to get you there? That's when you use Coco's resume analyzer feature. Simply upload a PDF of your resume and receive an immediate plan of action based on your resume + job wishlist.
 
 **Features:**
