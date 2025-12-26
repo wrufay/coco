@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "coco ೀ⋆｡˚",
-  "version": "0.6.7",
+  "version": "1.0.0",
   "description": "never stress over job applications again.",
   "permissions": [
     "storage",
