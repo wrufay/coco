@@ -624,7 +624,7 @@ analyzeResumeBtn.addEventListener("click", async () => {
 
     Swal.fire({
       // want to add an animation to this !!
-      title: "Coco is analyzing...˚⟡˖",
+      title: "Analyzing...˚⟡˖",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
       ...SWAL_THEME,
