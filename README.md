@@ -1,4 +1,4 @@
-i couldn’t sleep during the power outage last week so i made an aesthetic “notion for jobs”. one chrome extension - and you’ll never stress over about job applications again! 🧸
+i couldn’t sleep during the power outage last week so i made “notion for jobs”
 
 ### introducing coco, your personal co-op coordinator: an ai agent that helps you track, organize and plan.
 
