@@ -524,6 +524,8 @@ const setFormLoadingState = (isLoading) => {
 
 autofillBtn.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const spinner = document.getElementById("autofill-spinner");
+
   // errors
   if (
     !tab.url ||
@@ -537,10 +539,12 @@ autofillBtn.addEventListener("click", async () => {
     return;
   }
 
+  spinner.classList.remove("hidden");
   setFormLoadingState(true);
 
   chrome.tabs.sendMessage(tab.id, { action: "getPageContent" }, (response) => {
     if (chrome.runtime.lastError) {
+      spinner.classList.add("hidden");
       showToast(
         "Sorry, Coco cannot access this page. Try refreshing first! ˚⟡˖",
         "error"
@@ -554,6 +558,7 @@ autofillBtn.addEventListener("click", async () => {
         { action: "extractJobInfo", pageText: response.text },
         (result) => {
           if (chrome.runtime.lastError) {
+            spinner.classList.add("hidden");
             showToast("Could not extract job info", "error");
             setFormLoadingState(false);
             return;
@@ -567,9 +572,11 @@ autofillBtn.addEventListener("click", async () => {
             deadlineInput.value = result.jobInfo.deadline || "";
             linkInput.value = response.url;
             notesTextarea.value = result.jobInfo.requirements || "";
+            spinner.classList.add("hidden");
             setFormLoadingState(false);
             showToast("Done! ˚⟡˖", "success");
           } else {
+            spinner.classList.add("hidden");
             showToast(
               "Sorry, Coco could not extract the job information.",
               "error"
@@ -618,7 +625,6 @@ analyzeResumeBtn.addEventListener("click", async () => {
     Swal.fire({
       // want to add an animation to this !!
       title: "Coco is analyzing...˚⟡˖",
-      html: "Reading your resume and matching it against jobs in your wishlist.",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
       ...SWAL_THEME,
