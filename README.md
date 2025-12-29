@@ -1,6 +1,8 @@
-# Introducing Coco the co-op coordinator, a Chrome Extension powered by Claude AI that helps you plan, track and organize your job applications.
+# introducing coco ೀ⋆｡˚
 
-## How does Coco work?
+## an AI powered Chrome Extension that helps you plan, track and organize your job applications!
+
+### How does Coco work?
 
 - Find a job you like? Navigate to that page and let Coco **autofill** the necessary information - or choose to manually input it yourself.
 
@@ -8,7 +10,7 @@
 
 - Now that you have jobs saved, use Coco's resume analyzer feature. Simply upload a PDF of your resume and receive an **immediate plan of action** based on your resume and job wishlist.
 
-## Installation instructions
+### Installation instructions
 
 1. Clone this repo or download the zip file
 2. Go to chrome://extensions/
@@ -18,9 +20,10 @@
 
 **Note: You'll need to have your own API key (+ some Claude credits) to use Coco ☺︎**
 
-## Tech stack:
+### Tech stack:
 
 - Built with HTML, Tailwind CSS, and JavaScript. AI features powered by Claude.
 
-Coco is a work in progress, and feedback is so welcome! You can always reach me here ☞ f26wu[at]uwaterloo[dot]ca
-Thanks for stopping by and checking out Coco ♡
+Coco is a work in progress, and feedback is so welcome! You can always reach me here ☞ _f26wu[at]uwaterloo[dot]ca_
+
+**Thanks for stopping by and checking out Coco ♡**
