@@ -1,6 +1,6 @@
 # introducing coco ೀ⋆｡˚
 
-## an AI powered Chrome Extension that helps you plan, track and organize your job applications!
+## an AI powered Chrome Extension that helps you plan, track and organize your job applications
 
 ### How does Coco work?
 
@@ -24,6 +24,12 @@
 
 - Built with HTML, Tailwind CSS, and JavaScript. AI features powered by Claude.
 
+### Currently working on...
+
+- Reducing API costs
+- Cleaning up UI
+- Fixing bugs and improving UX
+
 Coco is a work in progress, and feedback is so welcome! You can always reach me here ☞ _f26wu[at]uwaterloo[dot]ca_
 
-**Thanks for stopping by and checking out Coco ♡**
+**Thanks for stopping by and checking out my work ♡**
