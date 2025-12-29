@@ -1,11 +1,23 @@
-import { CLAUDE_API_KEY } from "./config.js";
-
 const CLAUDE_API_CONFIG = {
   url: "https://api.anthropic.com/v1/messages",
-  model: "claude-opus-4-5-20251101",
+  model: "claude-3-5-haiku-20241022",
   maxTokens: 2048,
   version: "2023-06-01",
 };
+
+// API Key Management
+async function getApiKey() {
+  const result = await chrome.storage.local.get(["claudeApiKey"]);
+  return result.claudeApiKey;
+}
+
+async function setApiKey(apiKey) {
+  await chrome.storage.local.set({ claudeApiKey: apiKey });
+}
+
+async function deleteApiKey() {
+  await chrome.storage.local.remove(["claudeApiKey"]);
+}
 
 const CATEGORIZATION_PROMPT = `
 Analyze these job descriptions and group them by role type.
@@ -21,7 +33,17 @@ Rules for categorization:
 Jobs:
 {jobs}
 
-Return JSON with "categories" array containing objects with "name" and "jobIds" fields.
+You MUST return ONLY valid JSON with no additional text, explanations, or commentary.
+Return ONLY a JSON object with a "categories" array containing objects with "name" and "jobIds" fields.
+Do not include any text before or after the JSON object.
+
+Example output format:
+{
+  "categories": [
+    {"name": "SWE", "jobIds": [1, 2, 3]},
+    {"name": "Product", "jobIds": [4, 5]}
+  ]
+}
 `;
 
 // Side Panel Setup
@@ -51,6 +73,13 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (request.action === "deleteApiKey") {
+    deleteApiKey()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
 // Helper Functions
@@ -66,46 +95,36 @@ const extractJSONFromResponse = (responseText) => {
 
 // API Functions
 async function extractJobInfo(pageText) {
-  const prompt = `Extract job information from this webpage text and return it as JSON.
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    throw new Error("API key not configured. Please set your Claude API key.");
+  }
+
+  const prompt = `Extract job info as JSON with these 6 fields: title, company, location, type, deadline, requirements
 
 Page content:
-${pageText.substring(0, 6000)}
+${pageText.substring(0, 3000)}
 
-You MUST return valid JSON with exactly these 6 fields: title, company, location, type, deadline, requirements
+Rules:
+- location: City, State/Province only (e.g., "Vancouver, BC")
+- type: "Remote", "Hybrid", or "On-site"
+- deadline: YYYY-MM-DD format or ""
+- requirements: Key qualifications separated by \\n\\n
 
-Example output:
-{
-  "title": "Software Engineer",
-  "company": "Google",
-  "location": "Vancouver, BC",
-  "type": "On-site",
-  "deadline": "2025-01-15",
-  "requirements": "Bachelor's degree in Computer Science or related field\\n\\n3+ years of experience with Python and JavaScript\\n\\nStrong knowledge of web frameworks like React and Django\\n\\nExperience with cloud platforms (AWS, GCP)\\n\\nExcellent problem-solving and communication skills"
-}
-
-Field rules:
-- title: The job title/role
-- company: The company name
-- location: City and state/province ONLY (e.g., "Vancouver, BC" or "San Francisco, CA"). If location says "Vancouver, BC (On-site)", extract ONLY "Vancouver, BC"
-- type: Must be exactly one of these three words: "Remote", "Hybrid", or "On-site"
-- deadline: Application deadline in YYYY-MM-DD format (e.g., "2025-01-15"). If no deadline is mentioned, use empty string ""
-- requirements: Extract what is required of the applicant (qualifications, skills, experience, education, certifications). Format as separate points with \\n\\n (double newline) between each requirement. Keep it concise and focused on the essentials.
-
-All fields are REQUIRED. Always include all 6 fields.
-
-Return ONLY the JSON object with all 6 fields.`;
+Return ONLY valid JSON:
+{"title":"","company":"","location":"","type":"","deadline":"","requirements":""}`;
 
   const response = await fetch(CLAUDE_API_CONFIG.url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": CLAUDE_API_KEY,
+      "x-api-key": apiKey,
       "anthropic-version": CLAUDE_API_CONFIG.version,
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
       model: CLAUDE_API_CONFIG.model,
-      max_tokens: 800,
+      max_tokens: 400,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -137,6 +156,11 @@ Return ONLY the JSON object with all 6 fields.`;
 }
 
 async function categorizeJobs(jobs) {
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    throw new Error("API key not configured. Please set your Claude API key.");
+  }
+
   const jobsText = jobs
     .map((job) => `ID: ${job.id}, Role: ${job.role}, Company: ${job.company}`)
     .join("\n");
@@ -147,25 +171,50 @@ async function categorizeJobs(jobs) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": CLAUDE_API_KEY,
+      "x-api-key": apiKey,
       "anthropic-version": CLAUDE_API_CONFIG.version,
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
       model: CLAUDE_API_CONFIG.model,
-      max_tokens: CLAUDE_API_CONFIG.maxTokens,
+      max_tokens: 500,
       messages: [{ role: "user", content: prompt }],
     }),
   });
 
   const data = await response.json();
-  const jsonText = extractJSONFromResponse(data.content[0].text);
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || `API error: ${response.status}`);
+  }
+
+  if (!data.content || !data.content[0]) {
+    throw new Error("Invalid response format from API");
+  }
+
+  const rawText = data.content[0].text;
+  console.log("Raw API response:", rawText);
+
+  const jsonText = extractJSONFromResponse(rawText);
+  console.log("Extracted JSON text:", jsonText);
+
   const result = JSON.parse(jsonText);
 
-  return result.categories;
+  // Ensure categories is always an array
+  let categories = result.categories;
+  if (!Array.isArray(categories)) {
+    categories = categories ? [categories] : [];
+  }
+
+  return categories;
 }
 
 async function analyzeResume(resumeText, jobs) {
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    throw new Error("API key not configured. Please set your Claude API key.");
+  }
+
   const wishlistJobs = jobs.filter((job) => job.status === "Wishlist");
 
   const jobsText =
@@ -207,7 +256,6 @@ Provide a BRIEF, ACTION-FOCUSED response with:
 
 1. TOP SKILLS TO LEARN (max 5 skills):
    - List ONLY the most impactful skills ranked by demand
-   - Separate bullets using "✱" symbol
    - Format: "<strong>Skill Name</strong> - Required by X/${
      wishlistJobs.length
    } wishlist jobs"
@@ -218,21 +266,19 @@ Provide a BRIEF, ACTION-FOCUSED response with:
    - Focus on high-impact actions
    - Add a <br> tag before the "YOUR ACTION PLAN" header for spacing
 
-   Keep the response conversational, include cute emojis such as ˚⟡˖, 🧸, ☻, and ♡
-
 Keep the ENTIRE response under 150 words. Use HTML: <h3> for headers, <ul><li> for lists, <strong> for emphasis. Make it scannable and punchy.`;
 
   const response = await fetch(CLAUDE_API_CONFIG.url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": CLAUDE_API_KEY,
+      "x-api-key": apiKey,
       "anthropic-version": CLAUDE_API_CONFIG.version,
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
       model: CLAUDE_API_CONFIG.model,
-      max_tokens: 4096,
+      max_tokens: 800,
       messages: [{ role: "user", content: prompt }],
     }),
   });

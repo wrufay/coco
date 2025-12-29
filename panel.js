@@ -21,6 +21,45 @@ const SWAL_THEME = {
   customClass: { title: "darumadrop-one-regular" },
 };
 
+// API Key Management
+async function checkAndPromptForApiKey() {
+  const result = await chrome.storage.local.get(["claudeApiKey"]);
+  if (!result.claudeApiKey) {
+    const { value: apiKey } = await Swal.fire({
+      title: "Hi there!",
+      html: `
+        <p style="margin-bottom: 15px; font-weight: bold;">You need a Claude API key to continue.</p>
+        <p style="font-size: 12px; font-weight: bold; color: #895737;">Get it from <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: #c08552; text-decoration: underline;">console.anthropic.com</a> ☺︎</p>
+      `,
+      input: "text",
+      inputPlaceholder: "sk-ant-...",
+      showCancelButton: false,
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      confirmButtonText: "Save",
+      inputValidator: (value) => {
+        if (!value) {
+          return "Please enter an API key";
+        }
+        if (!value.startsWith("sk-ant-")) {
+          return "API key should start with sk-ant-";
+        }
+      },
+      ...SWAL_THEME,
+    });
+
+    if (apiKey) {
+      await chrome.storage.local.set({ claudeApiKey: apiKey });
+      Swal.fire({
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+        ...SWAL_THEME,
+      });
+    }
+  }
+}
+
 const FOLDERS_CONTAINER_HTML = `<div id="folders-container" class="grid grid-cols-3 gap-4"></div>`;
 
 // DOM ELEMENTS
@@ -116,9 +155,25 @@ const addJob = (e) => {
   } else {
     const newJob = { id: Date.now(), ...jobData };
     jobList.push(newJob);
-    cachedCategories = null;
+
+    // Add to "Uncategorized" folder without re-categorizing
+    if (cachedCategories && cachedCategories.length > 0) {
+      // Find or create "Uncategorized" category
+      let uncategorized = cachedCategories.find(
+        (cat) => cat.name === "No category"
+      );
+      if (!uncategorized) {
+        uncategorized = { name: "Uncategorized", jobIds: [] };
+        cachedCategories.push(uncategorized);
+      }
+      uncategorized.jobIds.push(newJob.id);
+    } else {
+      // If no categories exist, create initial "Uncategorized" category
+      cachedCategories = [{ name: "Uncategorized", jobIds: [newJob.id] }];
+    }
+
     showToast("Job Added Successfully!");
-    saveJobs(); // uses autoCategorize
+    chrome.storage.local.set({ jobs: jobList, categories: cachedCategories });
     form.reset(); // clean flow!
   }
 
@@ -144,6 +199,14 @@ const setFilter = (filter) => {
     }
   });
 
+  console.log(
+    "setFilter called with:",
+    filter,
+    "jobList:",
+    jobList,
+    "cachedCategories:",
+    cachedCategories
+  );
   resetToFolderView();
   displayFolders();
 };
@@ -168,8 +231,17 @@ const saveJobs = () => {
 const loadJobs = () => {
   chrome.storage.local.get(["jobs", "categories"], (result) => {
     jobList = result.jobs || [];
-    cachedCategories = result.categories?.length > 0 ? result.categories : null;
+
+    // Fix: Ensure categories is always an array
+    let categories = result.categories;
+    if (categories && !Array.isArray(categories)) {
+      categories = [categories];
+    }
+
+    cachedCategories = categories?.length > 0 ? categories : null;
     cachedCategories ? displayFolders() : autoCategorize();
+    // ok its getting them.
+    console.log(jobList);
   });
 };
 
@@ -230,8 +302,23 @@ const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
   const container = document.getElementById("folders-container");
   if (!container) return;
 
+  console.log(
+    "displayFolders called with roles:",
+    roles,
+    "allJobs:",
+    allJobs,
+    "currentFilter:",
+    currentFilter
+  );
+
   // Show loading spinner if categories are being generated
   if (!roles || roles.length === 0) {
+    console.log(
+      "No roles, jobList.length:",
+      jobList.length,
+      "cachedCategories:",
+      cachedCategories
+    );
     if (jobList.length > 0 && !cachedCategories) {
       container.innerHTML = `
         <div id="loading-categories" class="col-span-3 text-center py-8">
@@ -249,21 +336,30 @@ const displayFolders = (roles = cachedCategories, allJobs = jobList) => {
       ? allJobs
       : allJobs.filter((j) => j.status === currentFilter);
 
+  console.log("filteredJobs:", filteredJobs);
+
   const filteredRoles = roles
     .map((role) => ({
       ...role,
-      jobIds: role.jobIds.filter((id) => filteredJobs.some((j) => j.id === id)),
+      jobIds: role.jobIds.filter((id) => filteredJobs.some((j) => j.id == id)), // Use == instead of === to handle string/number mismatch
     }))
     .filter((role) => role.jobIds.length > 0);
 
+  console.log("filteredRoles:", filteredRoles);
+
   container.innerHTML = "";
   const hasJobs = filteredRoles.length > 0;
+
+  console.log("hasJobs:", hasJobs);
 
   emptyState.style.display = hasJobs ? "none" : "block";
   reorganizeBtn.style.display =
     hasJobs && currentFilter === "all" ? "inline-block" : "none";
 
-  if (!hasJobs) return;
+  if (!hasJobs) {
+    console.log("No jobs to display, returning early");
+    return;
+  }
 
   filteredRoles.forEach((role) => {
     const folderDiv = document.createElement("div");
@@ -425,7 +521,22 @@ const deleteJob = (jobId) => {
     if (result.isConfirmed) {
       removeJobFromCategories(jobId);
       jobList = jobList.filter((j) => j.id !== jobId);
-      saveJobs();
+
+      // If no jobs left, clear categories and show empty state
+      if (jobList.length === 0) {
+        cachedCategories = null;
+        chrome.storage.local.set({ jobs: [], categories: null }, () => {
+          const container = document.getElementById("folders-container");
+          if (container) {
+            container.innerHTML = "";
+          }
+          emptyState.style.display = "block";
+          reorganizeBtn.style.display = "none";
+        });
+      } else {
+        saveJobs();
+      }
+
       showToast("Successfully Deleted!");
       resetToFolderView();
     }
@@ -455,6 +566,17 @@ async function autoCategorize() {
     return;
   }
 
+  // If no jobs, show empty state
+  if (jobList.length === 0) {
+    const container = document.getElementById("folders-container");
+    if (container) {
+      container.innerHTML = "";
+    }
+    emptyState.style.display = "block";
+    reorganizeBtn.style.display = "none";
+    return;
+  }
+
   // spinner (fix, right after you add a job -> then click see jobs doesn't show up)
   const container = document.getElementById("folders-container");
   if (container) {
@@ -469,15 +591,31 @@ async function autoCategorize() {
 
   chrome.storage.local.get(["jobs"], (result) => {
     const jobs = result.jobs || [];
+    console.log("Categorizing jobs:", jobs);
     chrome.runtime.sendMessage(
       { action: "categorizeJobs", jobs },
       (response) => {
         setLoadingState(false);
+        console.log("Categorize response:", response);
+
+        if (chrome.runtime.lastError) {
+          console.error("Runtime error:", chrome.runtime.lastError);
+          showToast("Failed to categorize jobs", "error");
+          return;
+        }
 
         if (response && response.success) {
           cachedCategories = response.categories;
           chrome.storage.local.set({ categories: cachedCategories });
+          console.log("Categories created:", cachedCategories);
           displayFolders(response.categories, jobs);
+        } else {
+          console.error("Categorization failed:", response);
+          showToast(
+            "Failed to categorize jobs: " +
+              (response?.error || "Unknown error"),
+            "error"
+          );
         }
       }
     );
@@ -692,6 +830,48 @@ analyzeResumeBtn.addEventListener("click", async () => {
 
   input.click();
 });
+
+// Reset API Key Button
+const resetApiKeyBtn = document.getElementById("reset-api-key-btn");
+
+resetApiKeyBtn.addEventListener("click", async () => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    html: `
+        <p style="font-weight: bold;">This will delete your current key and prompt you to enter a new one.</p>
+      `,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, reset",
+    cancelButtonText: "Cancel",
+    ...SWAL_THEME,
+  });
+
+  if (result.isConfirmed) {
+    chrome.runtime.sendMessage({ action: "deleteApiKey" }, async (response) => {
+      if (response && response.success) {
+        Swal.fire({
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false,
+          ...SWAL_THEME,
+        });
+        // Prompt for new API key
+        await checkAndPromptForApiKey();
+      } else {
+        Swal.fire({
+          title: "Error",
+          text: "Failed to reset API key.",
+          icon: "error",
+          ...SWAL_THEME,
+        });
+      }
+    });
+  }
+});
+
+// Check for API key on load
+checkAndPromptForApiKey();
 
 loadJobs();
 
