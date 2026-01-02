@@ -24,7 +24,9 @@
 
 - Built with HTML, Tailwind CSS, and JavaScript. AI features powered by Claude.
 
-[![watch the demo video here!](https://img.youtube.com/vi/NJIwTCvhRek/maxresdefault.jpg)](https://youtu.be/NJIwTCvhRek)
+## Click below to watch the demo ☺︎
+
+[![coco demo](https://img.youtube.com/vi/NJIwTCvhRek/maxresdefault.jpg)](https://youtu.be/NJIwTCvhRek)
 
 ### Currently working on...
 
