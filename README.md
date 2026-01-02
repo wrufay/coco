@@ -31,6 +31,7 @@
 ### Currently working on...
 
 - Reducing API costs
+  - recent update: updated flow to add a new job into unnamed folder -> then user can re-categorize at any time, instead of automatically calling claude to auto-categorize every time user adds a new job (allows for adding lots of jobs without recategorizing, reducing api credits especially if user already has a lot of jobs stored up)
 - Cleaning up UI
 - Fixing bugs and improving UX
 
