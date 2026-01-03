@@ -160,7 +160,7 @@ const addJob = (e) => {
     if (cachedCategories && cachedCategories.length > 0) {
       // Find or create "Uncategorized" category
       let uncategorized = cachedCategories.find(
-        (cat) => cat.name === "No category"
+        (cat) => cat.name === "Uncategorized"
       );
       if (!uncategorized) {
         uncategorized = { name: "Uncategorized", jobIds: [] };

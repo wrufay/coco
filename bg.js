@@ -1,6 +1,6 @@
 const CLAUDE_API_CONFIG = {
   url: "https://api.anthropic.com/v1/messages",
-  model: "claude-3-5-haiku-20241022",
+  model: "claude-sonnet-4-5-20250514",
   maxTokens: 2048,
   version: "2023-06-01",
 };
