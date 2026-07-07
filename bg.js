@@ -1,7 +1,6 @@
 const CLAUDE_API_CONFIG = {
   url: "https://api.anthropic.com/v1/messages",
-  model: "claude-sonnet-4-5-20250514",
-  maxTokens: 2048,
+  model: "claude-sonnet-4-5-20250929",
   version: "2023-06-01",
 };
 
@@ -19,6 +18,52 @@ async function deleteApiKey() {
   await chrome.storage.local.remove(["claudeApiKey"]);
 }
 
+// Error Classification
+function classifyAnthropicError(response, data, networkError) {
+  if (networkError) {
+    return {
+      kind: "network",
+      message: "Couldn't reach Anthropic — check your internet connection.",
+    };
+  }
+
+  const rawMessage = data?.error?.message || "";
+
+  if (response?.status === 401) {
+    return {
+      kind: "invalid_key",
+      message: "Your API key looks invalid or has been revoked.",
+    };
+  }
+
+  if (response?.status === 400 && rawMessage.toLowerCase().includes("credit balance")) {
+    return {
+      kind: "out_of_credits",
+      message:
+        "You're out of Anthropic credits — top up at console.anthropic.com/settings/billing.",
+    };
+  }
+
+  if (response?.status === 429) {
+    return {
+      kind: "rate_limited",
+      message: "Anthropic is rate-limiting this key right now — try again shortly.",
+    };
+  }
+
+  if (response?.status >= 500) {
+    return {
+      kind: "server_error",
+      message: "Anthropic's API is having issues — try again shortly.",
+    };
+  }
+
+  return {
+    kind: "unknown",
+    message: rawMessage || "Something went wrong talking to Anthropic.",
+  };
+}
+
 const CATEGORIZATION_PROMPT = `
 Analyze these job descriptions and group them by role type.
 Rules for categorization:
@@ -29,21 +74,10 @@ Rules for categorization:
 - Try not to have more than 6-7 jobs in one category
 - Examples: "SWE", "Product", "Design", "Data", "Other"
 - Make sure to consider other industries and careers as well, do not classify non-tech jobs as tech
+{existingCategoriesNote}
 
 Jobs:
 {jobs}
-
-You MUST return ONLY valid JSON with no additional text, explanations, or commentary.
-Return ONLY a JSON object with a "categories" array containing objects with "name" and "jobIds" fields.
-Do not include any text before or after the JSON object.
-
-Example output format:
-{
-  "categories": [
-    {"name": "SWE", "jobIds": [1, 2, 3]},
-    {"name": "Product", "jobIds": [4, 5]}
-  ]
-}
 `;
 
 // Side Panel Setup
@@ -61,7 +95,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   if (request.action === "categorizeJobs") {
-    categorizeJobs(request.jobs)
+    categorizeJobs(request.jobs, request.existingCategories || [])
       .then((categories) => sendResponse({ success: true, categories }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
@@ -80,18 +114,148 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (request.action === "validateApiKey") {
+    validateApiKey(request.apiKey)
+      .then((result) => sendResponse(result))
+      .catch((error) =>
+        sendResponse({
+          success: false,
+          error: { kind: "unknown", message: error.message },
+        })
+      );
+    return true;
+  }
 });
 
-// Helper Functions
-const extractJSONFromResponse = (responseText) => {
-  if (responseText.includes("```json")) {
-    return responseText.split("```json")[1].split("```")[0].trim();
+async function validateApiKey(apiKey) {
+  let response;
+  let data;
+
+  try {
+    response = await fetch(CLAUDE_API_CONFIG.url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": CLAUDE_API_CONFIG.version,
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: CLAUDE_API_CONFIG.model,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    });
+    data = await response.json();
+  } catch (networkError) {
+    return { success: false, error: classifyAnthropicError(null, null, true) };
   }
-  if (responseText.includes("```")) {
-    return responseText.split("```")[1].split("```")[0].trim();
+
+  if (!response.ok) {
+    return { success: false, error: classifyAnthropicError(response, data, false) };
   }
-  return responseText;
+
+  await setApiKey(apiKey);
+  return { success: true };
+}
+
+// Tool Schemas
+const EXTRACT_JOB_TOOL = {
+  name: "extract_job_info",
+  description: "Extract structured job posting information from webpage text.",
+  input_schema: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      company: { type: "string" },
+      location: {
+        type: "string",
+        description: "City, State/Province only, e.g. 'Vancouver, BC'",
+      },
+      type: { type: "string", enum: ["Remote", "Hybrid", "On-site"] },
+      deadline: {
+        type: "string",
+        description: "YYYY-MM-DD or empty string if not found",
+      },
+      requirements: {
+        type: "string",
+        description: "Key qualifications, separated by blank lines",
+      },
+    },
+    required: ["title", "company", "location", "type", "deadline", "requirements"],
+  },
 };
+
+const CATEGORIZE_JOBS_TOOL = {
+  name: "categorize_jobs",
+  description: "Group job listings into short role-type categories.",
+  input_schema: {
+    type: "object",
+    properties: {
+      categories: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Short category name, 1-3 words" },
+            jobIds: { type: "array", items: { type: "integer" } },
+          },
+          required: ["name", "jobIds"],
+        },
+      },
+    },
+    required: ["categories"],
+  },
+};
+
+// Shared tool-use call with classification + limited retry
+async function callClaudeTool({ apiKey, prompt, tool, maxTokens, retries = 1 }) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    let response;
+    let data;
+
+    try {
+      response = await fetch(CLAUDE_API_CONFIG.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": CLAUDE_API_CONFIG.version,
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: CLAUDE_API_CONFIG.model,
+          max_tokens: maxTokens,
+          tools: [tool],
+          tool_choice: { type: "tool", name: tool.name },
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      data = await response.json();
+    } catch (networkError) {
+      const classified = classifyAnthropicError(null, null, true);
+      if (attempt < retries) continue;
+      throw new Error(classified.message);
+    }
+
+    if (!response.ok) {
+      const classified = classifyAnthropicError(response, data, false);
+      if (attempt < retries && (classified.kind === "network" || classified.kind === "server_error")) {
+        continue;
+      }
+      throw new Error(classified.message);
+    }
+
+    const toolUseBlock = data.content?.find((block) => block.type === "tool_use");
+    if (!toolUseBlock) {
+      if (attempt < retries) continue;
+      throw new Error("Claude did not return the expected structured response.");
+    }
+
+    return toolUseBlock.input;
+  }
+}
 
 // API Functions
 async function extractJobInfo(pageText) {
@@ -100,40 +264,19 @@ async function extractJobInfo(pageText) {
     throw new Error("API key not configured. Please set your Claude API key.");
   }
 
-  const prompt = `Extract job info as JSON with these 6 fields: title, company, location, type, deadline, requirements
+  const prompt = `Extract job info from this webpage content.
 
 Page content:
-${pageText.substring(0, 3000)}
+${pageText.substring(0, 3000)}`;
 
-Rules:
-- location: City, State/Province only (e.g., "Vancouver, BC")
-- type: "Remote", "Hybrid", or "On-site"
-- deadline: YYYY-MM-DD format or ""
-- requirements: Key qualifications separated by \\n\\n
-
-Return ONLY valid JSON:
-{"title":"","company":"","location":"","type":"","deadline":"","requirements":""}`;
-
-  const response = await fetch(CLAUDE_API_CONFIG.url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": CLAUDE_API_CONFIG.version,
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: CLAUDE_API_CONFIG.model,
-      max_tokens: 400,
-      messages: [{ role: "user", content: prompt }],
-    }),
+  const parsed = await callClaudeTool({
+    apiKey,
+    prompt,
+    tool: EXTRACT_JOB_TOOL,
+    maxTokens: 1024,
   });
 
-  const data = await response.json();
-  const jsonText = extractJSONFromResponse(data.content[0].text);
-  const parsed = JSON.parse(jsonText);
-
-  // Ensure type field exists
+  // Ensure type field exists (defense-in-depth even with the enum constraint)
   if (!parsed.type) {
     if (parsed.location && parsed.location.toLowerCase().includes("remote")) {
       parsed.type = "Remote";
@@ -155,7 +298,7 @@ Return ONLY valid JSON:
   return parsed;
 }
 
-async function categorizeJobs(jobs) {
+async function categorizeJobs(jobs, existingCategories = []) {
   const apiKey = await getApiKey();
   if (!apiKey) {
     throw new Error("API key not configured. Please set your Claude API key.");
@@ -165,48 +308,24 @@ async function categorizeJobs(jobs) {
     .map((job) => `ID: ${job.id}, Role: ${job.role}, Company: ${job.company}`)
     .join("\n");
 
-  const prompt = CATEGORIZATION_PROMPT.replace("{jobs}", jobsText);
+  const existingCategoriesNote =
+    existingCategories.length > 0
+      ? `- Prefer reusing one of these existing category names when a job fits: ${existingCategories.join(", ")}`
+      : "";
 
-  const response = await fetch(CLAUDE_API_CONFIG.url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": CLAUDE_API_CONFIG.version,
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: CLAUDE_API_CONFIG.model,
-      max_tokens: 500,
-      messages: [{ role: "user", content: prompt }],
-    }),
+  const prompt = CATEGORIZATION_PROMPT.replace("{jobs}", jobsText).replace(
+    "{existingCategoriesNote}",
+    existingCategoriesNote
+  );
+
+  const result = await callClaudeTool({
+    apiKey,
+    prompt,
+    tool: CATEGORIZE_JOBS_TOOL,
+    maxTokens: 2048,
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error?.message || `API error: ${response.status}`);
-  }
-
-  if (!data.content || !data.content[0]) {
-    throw new Error("Invalid response format from API");
-  }
-
-  const rawText = data.content[0].text;
-  console.log("Raw API response:", rawText);
-
-  const jsonText = extractJSONFromResponse(rawText);
-  console.log("Extracted JSON text:", jsonText);
-
-  const result = JSON.parse(jsonText);
-
-  // Ensure categories is always an array
-  let categories = result.categories;
-  if (!Array.isArray(categories)) {
-    categories = categories ? [categories] : [];
-  }
-
-  return categories;
+  return Array.isArray(result.categories) ? result.categories : [];
 }
 
 async function analyzeResume(resumeText, jobs) {
@@ -278,7 +397,7 @@ Keep the ENTIRE response under 150 words. Use HTML: <h3> for headers, <ul><li> f
     },
     body: JSON.stringify({
       model: CLAUDE_API_CONFIG.model,
-      max_tokens: 800,
+      max_tokens: 16000,
       messages: [{ role: "user", content: prompt }],
     }),
   });

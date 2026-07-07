@@ -37,6 +37,7 @@ async function checkAndPromptForApiKey() {
       allowOutsideClick: false,
       allowEscapeKey: false,
       confirmButtonText: "Save",
+      showLoaderOnConfirm: true,
       inputValidator: (value) => {
         if (!value) {
           return "Please enter an API key";
@@ -45,11 +46,27 @@ async function checkAndPromptForApiKey() {
           return "API key should start with sk-ant-";
         }
       },
+      preConfirm: (value) => {
+        return new Promise((resolve) => {
+          chrome.runtime.sendMessage(
+            { action: "validateApiKey", apiKey: value },
+            (response) => {
+              if (response && response.success) {
+                resolve(value);
+              } else {
+                Swal.showValidationMessage(
+                  response?.error?.message || "Couldn't validate that key. Try again."
+                );
+                resolve(false);
+              }
+            }
+          );
+        });
+      },
       ...SWAL_THEME,
     });
 
     if (apiKey) {
-      await chrome.storage.local.set({ claudeApiKey: apiKey });
       Swal.fire({
         icon: "success",
         timer: 2000,
@@ -71,6 +88,7 @@ const typeInput = document.getElementById("type-input");
 const linkInput = document.getElementById("link-input");
 const deadlineInput = document.getElementById("deadline-input");
 const notesTextarea = document.getElementById("notes-textarea");
+const categorySelect = document.getElementById("category-select");
 
 const submitBtn = document.getElementById("add-btn");
 const addAppBtn = document.getElementById("add-app-btn");
@@ -92,6 +110,85 @@ let jobList = [];
 let currentFilter = "all";
 let cachedCategories = null;
 let editingJobId = null;
+
+// Category helpers
+const NEW_CATEGORY_VALUE = "__new__";
+
+const getJobCategoryName = (jobId) => {
+  const found = (cachedCategories || []).find((cat) => cat.jobIds.includes(jobId));
+  return found ? found.name : "Uncategorized";
+};
+
+const removeJobFromCategories = (jobId) => {
+  if (!cachedCategories) return;
+  cachedCategories.forEach(
+    (cat) => (cat.jobIds = cat.jobIds.filter((id) => id !== jobId))
+  );
+  cachedCategories = cachedCategories.filter((cat) => cat.jobIds.length > 0);
+};
+
+const assignJobToCategory = (jobId, categoryName) => {
+  const name = categoryName?.trim() || "Uncategorized";
+  removeJobFromCategories(jobId);
+  if (!cachedCategories) cachedCategories = [];
+  let category = cachedCategories.find((cat) => cat.name === name);
+  if (!category) {
+    category = { name, jobIds: [] };
+    cachedCategories.push(category);
+  }
+  category.jobIds.push(jobId);
+};
+
+const renderCategoryOptions = (currentName = "Uncategorized") => {
+  const names = new Set(["Uncategorized"]);
+  (cachedCategories || []).forEach((cat) => names.add(cat.name));
+  const options = Array.from(names)
+    .map(
+      (name) =>
+        `<option value="${name}" ${name === currentName ? "selected" : ""}>${name}</option>`
+    )
+    .join("");
+  return options + `<option value="${NEW_CATEGORY_VALUE}">+ New category…</option>`;
+};
+
+const populateCategorySelect = (currentName = "Uncategorized") => {
+  categorySelect.innerHTML = renderCategoryOptions(currentName);
+  categorySelect.dataset.previousValue = currentName;
+};
+
+const promptNewCategoryName = async () => {
+  const { value: enteredName } = await Swal.fire({
+    title: "New category name",
+    input: "text",
+    inputPlaceholder: "eg. SWE",
+    showCancelButton: true,
+    confirmButtonText: "Create",
+    ...SWAL_THEME,
+  });
+  return enteredName ? enteredName.trim() : null;
+};
+
+categorySelect.addEventListener("change", async () => {
+  if (categorySelect.value !== NEW_CATEGORY_VALUE) {
+    categorySelect.dataset.previousValue = categorySelect.value;
+    return;
+  }
+
+  const newName = await promptNewCategoryName();
+  if (!newName) {
+    categorySelect.value = categorySelect.dataset.previousValue || "Uncategorized";
+    return;
+  }
+
+  if (![...categorySelect.options].some((opt) => opt.value === newName)) {
+    const option = document.createElement("option");
+    option.value = newName;
+    option.textContent = newName;
+    categorySelect.insertBefore(option, categorySelect.lastElementChild);
+  }
+  categorySelect.value = newName;
+  categorySelect.dataset.previousValue = newName;
+});
 
 // initally hidden
 addSection.style.display = "none";
@@ -120,6 +217,7 @@ const resetFormState = () => {
 
 addAppBtn.addEventListener("click", () => {
   resetFormState();
+  populateCategorySelect("Uncategorized");
   showAddSection();
 });
 
@@ -149,28 +247,16 @@ const addJob = (e) => {
     notes: notesTextarea.value,
   };
 
+  const chosenCategory = categorySelect.value;
+
   // check if editing a job -> flow is different
   if (editingJobId) {
+    assignJobToCategory(editingJobId, chosenCategory);
     updateJob(editingJobId, jobData);
   } else {
     const newJob = { id: Date.now(), ...jobData };
     jobList.push(newJob);
-
-    // Add to "Uncategorized" folder without re-categorizing
-    if (cachedCategories && cachedCategories.length > 0) {
-      // Find or create "Uncategorized" category
-      let uncategorized = cachedCategories.find(
-        (cat) => cat.name === "Uncategorized"
-      );
-      if (!uncategorized) {
-        uncategorized = { name: "Uncategorized", jobIds: [] };
-        cachedCategories.push(uncategorized);
-      }
-      uncategorized.jobIds.push(newJob.id);
-    } else {
-      // If no categories exist, create initial "Uncategorized" category
-      cachedCategories = [{ name: "Uncategorized", jobIds: [newJob.id] }];
-    }
+    assignJobToCategory(newJob.id, chosenCategory);
 
     showToast("Job Added Successfully!");
     chrome.storage.local.set({ jobs: jobList, categories: cachedCategories });
@@ -253,6 +339,9 @@ const attachJobCardListeners = (jobs) => {
     const statusDropdown = document.querySelector(
       `[data-status-id="${job.id}"]`
     );
+    const categoryDropdown = document.querySelector(
+      `[data-category-id="${job.id}"]`
+    );
 
     if (jobHeader)
       jobHeader.addEventListener("click", () => toggleJobCard(job.id));
@@ -260,6 +349,8 @@ const attachJobCardListeners = (jobs) => {
     if (deleteBtn) deleteBtn.addEventListener("click", () => deleteJob(job.id));
     if (statusDropdown)
       statusDropdown.addEventListener("change", () => changeStatus(job.id));
+    if (categoryDropdown)
+      categoryDropdown.addEventListener("change", () => changeCategory(job.id));
   });
 };
 
@@ -429,6 +520,14 @@ const createJobCard = (job, number) => {
             </select>
           </div>
 
+          <div class="flex justify-end">
+            <select class="my-1 text-right text-[var(--warm-brown)] text-xs focus:outline-none hover:cursor-pointer" data-category-id="${
+              job.id
+            }">
+              ${renderCategoryOptions(getJobCategoryName(job.id))}
+            </select>
+          </div>
+
           <p class="my-2 text-xs text-left"><strong>Location</strong><br> ${
             job.location
           } (${job.type})</p>
@@ -453,15 +552,6 @@ const createJobCard = (job, number) => {
   `;
 };
 
-const removeJobFromCategories = (jobId) => {
-  // check if already
-  if (!cachedCategories) return;
-  cachedCategories.forEach(
-    (cat) => (cat.jobIds = cat.jobIds.filter((id) => id !== jobId))
-  );
-  cachedCategories = cachedCategories.filter((cat) => cat.jobIds.length > 0);
-};
-
 const openEditModal = (jobId) => {
   const job = jobList.find((j) => j.id === jobId);
   if (!job) return;
@@ -475,6 +565,7 @@ const openEditModal = (jobId) => {
   deadlineInput.value = job.deadline;
   linkInput.value = job.link;
   notesTextarea.value = job.notes || "";
+  populateCategorySelect(getJobCategoryName(jobId));
 
   // change stuff, show stuff / hide stuff
   cancelBtn.style.display = "block";
@@ -500,12 +591,34 @@ const changeStatus = (jobId) => {
   if (index === -1) return;
 
   const newStatus = document.querySelector(
-    `[data-job-id="${jobId}"] select`
+    `[data-status-id="${jobId}"]`
   ).value;
   jobList[index].status = newStatus;
   saveJobs();
   resetToFolderView();
   setFilter(newStatus);
+};
+
+const changeCategory = async (jobId) => {
+  const dropdown = document.querySelector(`[data-category-id="${jobId}"]`);
+  if (!dropdown) return;
+
+  let newCategoryName = dropdown.value;
+
+  if (newCategoryName === NEW_CATEGORY_VALUE) {
+    const enteredName = await promptNewCategoryName();
+    if (!enteredName) {
+      dropdown.value = getJobCategoryName(jobId);
+      return;
+    }
+    newCategoryName = enteredName;
+  }
+
+  assignJobToCategory(jobId, newCategoryName);
+  saveJobs();
+  showToast("Category updated!");
+  resetToFolderView();
+  displayFolders();
 };
 
 const deleteJob = (jobId) => {
@@ -611,9 +724,17 @@ async function autoCategorize() {
           displayFolders(response.categories, jobs);
         } else {
           console.error("Categorization failed:", response);
+          // Fallback: show all jobs in one browsable folder instead of an
+          // infinite spinner, so users can still categorize manually.
+          cachedCategories = [
+            { name: "Uncategorized", jobIds: jobs.map((j) => j.id) },
+          ];
+          chrome.storage.local.set({ categories: cachedCategories });
+          displayFolders(cachedCategories, jobs);
           showToast(
-            "Failed to categorize jobs: " +
-              (response?.error || "Unknown error"),
+            "Couldn't auto-categorize (" +
+              (response?.error || "unknown error") +
+              ") — showing all jobs in one folder. You can assign categories manually.",
             "error"
           );
         }
@@ -623,18 +744,104 @@ async function autoCategorize() {
 }
 
 reorganizeBtn.addEventListener("click", () => {
+  const uncategorizedBucket = (cachedCategories || []).find(
+    (cat) => cat.name === "Uncategorized"
+  );
+  const categorizedIds = new Set(
+    (cachedCategories || []).flatMap((cat) => cat.jobIds)
+  );
+  const orphanIds = jobList
+    .map((j) => j.id)
+    .filter((id) => !categorizedIds.has(id));
+  const uncategorizedIds = Array.from(
+    new Set([...(uncategorizedBucket?.jobIds || []), ...orphanIds])
+  );
+
+  if (uncategorizedIds.length === 0) {
+    showToast("Nothing to reorganize — every job already has a category.");
+    return;
+  }
+
+  const jobsToCategorize = jobList.filter((j) =>
+    uncategorizedIds.includes(j.id)
+  );
+  const existingCategoryNames = (cachedCategories || [])
+    .map((cat) => cat.name)
+    .filter((name) => name !== "Uncategorized");
+
   const container = document.getElementById("folders-container");
   if (container) {
-    // can probably clean this up
     container.innerHTML = `
       <div id="loading-categories" class="col-span-3 text-center py-8">
         <div class="inline-block w-8 h-8 border-4 border-[var(--neutral-brown)] border-t-transparent rounded-full animate-spin"></div>
       </div>
     `;
   }
+  setLoadingState(true);
 
-  cachedCategories = null;
-  chrome.storage.local.remove("categories", () => autoCategorize());
+  chrome.runtime.sendMessage(
+    {
+      action: "categorizeJobs",
+      jobs: jobsToCategorize,
+      existingCategories: existingCategoryNames,
+    },
+    (response) => {
+      setLoadingState(false);
+
+      if (chrome.runtime.lastError || !response || !response.success) {
+        showToast(
+          "Failed to reorganize: " +
+            (response?.error ||
+              chrome.runtime.lastError?.message ||
+              "Unknown error"),
+          "error"
+        );
+        resetToFolderView();
+        displayFolders();
+        return;
+      }
+
+      cachedCategories = cachedCategories || [];
+
+      // Clear reorganized job ids out of the old Uncategorized bucket so
+      // they don't end up double-listed once merged into their new category.
+      const stillUncategorized = cachedCategories.find(
+        (cat) => cat.name === "Uncategorized"
+      );
+      if (stillUncategorized) {
+        stillUncategorized.jobIds = stillUncategorized.jobIds.filter(
+          (id) => !uncategorizedIds.includes(id)
+        );
+      }
+
+      // Merge incoming categories into existing ones (case-insensitive name
+      // match) instead of replacing cachedCategories wholesale, so manual
+      // assignments and prior categories survive.
+      response.categories.forEach((incoming) => {
+        const match = cachedCategories.find(
+          (cat) =>
+            cat.name.trim().toLowerCase() === incoming.name.trim().toLowerCase()
+        );
+        if (match) {
+          match.jobIds.push(...incoming.jobIds);
+        } else {
+          cachedCategories.push({
+            name: incoming.name,
+            jobIds: [...incoming.jobIds],
+          });
+        }
+      });
+
+      cachedCategories = cachedCategories.filter(
+        (cat) => !(cat.name === "Uncategorized" && cat.jobIds.length === 0)
+      );
+
+      chrome.storage.local.set({ categories: cachedCategories });
+      showToast("Jobs reorganized!");
+      resetToFolderView();
+      displayFolders();
+    }
+  );
 });
 
 // AUTOFILL
@@ -716,7 +923,9 @@ autofillBtn.addEventListener("click", async () => {
           } else {
             spinner.classList.add("hidden");
             showToast(
-              "Sorry, Coco could not extract the job information.",
+              result?.error?.message ||
+                result?.error ||
+                "Sorry, Coco could not extract the job information.",
               "error"
             );
             setFormLoadingState(false);
